@@ -56,7 +56,13 @@ exactly how Shift does it.
 - Keyboard shortcuts to jump between accounts (Cmd-1 … Cmd-9).
 
 ### 2.2 Explicit non-goals (do NOT build these)
-- ❌ Distribution, installers, auto-update, code signing, notarization.
+- ❌ Distribution to others, installers/DMGs, auto-update, Developer-ID code
+  signing, notarization.
+  - **Exception (approved 2026-06-23):** a *local, unsigned* macOS `.app` build
+    via electron-builder (`npm run package`) IS in scope — it's required so the
+    app is launched from Finder and is "self-responsible," which macOS demands
+    for Bluetooth/FIDO passkey sign-in. Ad-hoc signed, `--dir` only, no DMG, no
+    notarization, no auto-update.
 - ❌ Windows / Linux support (macOS only; do not add cross-platform branches).
 - ❌ Non-Google apps, "Spaces"/app-grouping, Slack/Outlook integrations.
 - ❌ Universal cross-account search.

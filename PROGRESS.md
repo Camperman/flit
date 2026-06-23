@@ -65,6 +65,14 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Packaging (Phase 8, user-approved) — ✅** Added electron-builder with a local,
+  unsigned macOS build (`npm run package` → `dist/mac-arm64/Glide.app`). Needed
+  because passkey-over-Bluetooth (caBLE) sign-in fails when the app is launched
+  from a terminal — macOS only allows Bluetooth/FIDO for a "self-responsible"
+  process, i.e. an app launched from Finder. Bundle id `com.bcamp.glide`, ad-hoc
+  signed (`identity: null`), with `NSBluetoothAlwaysUsageDescription` +
+  camera/mic usage strings in Info.plist. Build verified. True distribution
+  (Developer-ID signing, notarization, DMG, auto-update) remains out of scope.
 - **Phase 7 — ✅ (1 sub-item deferred)** Per-account session permission handlers
   grant notifications (+ media for Meet, clipboard, fullscreen, pointer lock) and
   deny the rest, so Google notifications surface as native macOS notifications. An

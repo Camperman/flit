@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:smoke": "playwright test tests/smoke.spec.ts",
     "test:isolation": "playwright test tests/isolation.spec.ts",
-    "guard": "node scripts/guard.mjs"
+    "guard": "node scripts/guard.mjs",
+    "package": "npm run build && electron-builder --dir"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
@@ -21,10 +22,27 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.0"
+  },
+  "build": {
+    "appId": "com.bcamp.glide",
+    "productName": "Glide",
+    "files": ["out/**/*", "package.json"],
+    "directories": { "output": "dist" },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "extendInfo": {
+        "NSBluetoothAlwaysUsageDescription": "Glide uses Bluetooth for passkey (security key) sign-in.",
+        "NSBluetoothPeripheralUsageDescription": "Glide uses Bluetooth for passkey (security key) sign-in.",
+        "NSCameraUsageDescription": "Glide lets Google apps such as Meet use the camera.",
+        "NSMicrophoneUsageDescription": "Glide lets Google apps such as Meet use the microphone."
+      }
+    }
   }
 }
