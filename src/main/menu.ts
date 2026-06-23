@@ -1,18 +1,20 @@
 import { Menu, type MenuItemConstructorOptions } from 'electron'
+import type { AppRailLayout } from '../shared/types'
 
 export interface MenuHandlers {
   switchToIndex: (index: number) => void
   zoomIn: () => void
   zoomOut: () => void
   zoomReset: () => void
+  setLayout: (layout: AppRailLayout) => void
+  layout: AppRailLayout
 }
 
 /**
  * Install the application menu. Besides standard roles (so Cmd-C/V/etc. keep
- * working in the web views), it adds Cmd-1 … Cmd-9 to switch accounts and
- * Cmd +/-/0 to zoom the active page. Menu accelerators fire while any
- * window/view in the app is focused — including when a page (tab) has focus,
- * which is why zoom is wired here rather than in the renderer.
+ * working in the web views), it adds Cmd-1 … Cmd-9 to switch accounts, Cmd +/-/0
+ * to zoom the active page, and an App Layout toggle (left rail vs top row).
+ * Rebuild it (call again) when the layout changes so the radio check updates.
  */
 export function buildAppMenu(handlers: MenuHandlers): void {
   const accountItems: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
@@ -31,7 +33,25 @@ export function buildAppMenu(handlers: MenuHandlers): void {
       submenu: [
         { label: 'Zoom In', accelerator: 'CommandOrControl+=', click: handlers.zoomIn },
         { label: 'Zoom Out', accelerator: 'CommandOrControl+-', click: handlers.zoomOut },
-        { label: 'Actual Size', accelerator: 'CommandOrControl+0', click: handlers.zoomReset }
+        { label: 'Actual Size', accelerator: 'CommandOrControl+0', click: handlers.zoomReset },
+        { type: 'separator' },
+        {
+          label: 'App Layout',
+          submenu: [
+            {
+              label: 'Left Rail',
+              type: 'radio',
+              checked: handlers.layout === 'left',
+              click: () => handlers.setLayout('left')
+            },
+            {
+              label: 'Top Right',
+              type: 'radio',
+              checked: handlers.layout === 'top',
+              click: () => handlers.setLayout('top')
+            }
+          ]
+        }
       ]
     },
     { label: 'Accounts', submenu: accountItems },

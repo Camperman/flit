@@ -27,6 +27,9 @@ export interface Shortcut {
   favicon?: string
 }
 
+/** Where the app rail is rendered. */
+export type AppRailLayout = 'left' | 'top'
+
 /** An app as shown in the vertical app rail (a shortcut + live state). */
 export interface AppInfo {
   id: string
@@ -106,6 +109,9 @@ export interface GlideApi {
   getApps(accountId: string): Promise<{ apps: AppInfo[]; activeShortcutId?: string }>
   /** Subscribe to the active profile's app rail state. Returns an unsubscribe fn. */
   onAppsState(cb: (state: AppsState) => void): () => void
+  getLayout(): Promise<AppRailLayout>
+  /** Subscribe to app-rail layout changes (toggled from the View menu). */
+  onLayoutChanged(cb: (layout: AppRailLayout) => void): () => void
   addShortcut(accountId: string, input: ShortcutInput): Promise<void>
   updateShortcut(accountId: string, shortcutId: string, patch: ShortcutPatch): Promise<void>
   removeShortcut(accountId: string, shortcutId: string): Promise<void>

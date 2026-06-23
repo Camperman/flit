@@ -24,8 +24,23 @@ function buildState(): PersistedState {
     window: bounds
       ? { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y }
       : state.window,
-    zoomFactor: accounts?.getZoom() ?? state.zoomFactor
+    zoomFactor: accounts?.getZoom() ?? state.zoomFactor,
+    layout: accounts?.getLayout() ?? state.layout
   }
+}
+
+function installMenu(): void {
+  buildAppMenu({
+    switchToIndex: (index) => accounts?.setActiveByIndex(index),
+    zoomIn: () => accounts?.zoomIn(),
+    zoomOut: () => accounts?.zoomOut(),
+    zoomReset: () => accounts?.zoomReset(),
+    layout: accounts?.getLayout() ?? 'left',
+    setLayout: (layout) => {
+      accounts?.setLayout(layout)
+      installMenu() // rebuild so the radio check reflects the new layout
+    }
+  })
 }
 
 function persistNow(): void {
@@ -92,13 +107,9 @@ function createWindow(): void {
 
   if (state.activeAccountId) accounts.setActive(state.activeAccountId)
   if (state.zoomFactor) accounts.setZoom(state.zoomFactor)
+  if (state.layout) accounts.setLayout(state.layout)
 
-  buildAppMenu({
-    switchToIndex: (index) => accounts?.setActiveByIndex(index),
-    zoomIn: () => accounts?.zoomIn(),
-    zoomOut: () => accounts?.zoomOut(),
-    zoomReset: () => accounts?.zoomReset()
-  })
+  installMenu()
 }
 
 app.whenReady().then(() => {

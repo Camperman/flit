@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AccountSummary,
+  AppRailLayout,
   AppsState,
   GlideApi,
   NavState,
@@ -49,6 +50,12 @@ const api: GlideApi = {
     const listener = (_event: unknown, state: AppsState): void => cb(state)
     ipcRenderer.on('apps:state', listener)
     return () => ipcRenderer.removeListener('apps:state', listener)
+  },
+  getLayout: () => ipcRenderer.invoke('layout:get'),
+  onLayoutChanged: (cb) => {
+    const listener = (_event: unknown, layout: AppRailLayout): void => cb(layout)
+    ipcRenderer.on('layout:changed', listener)
+    return () => ipcRenderer.removeListener('layout:changed', listener)
   },
   addShortcut: (accountId, input) => ipcRenderer.invoke('shortcuts:add', accountId, input),
   updateShortcut: (accountId, shortcutId, patch) =>

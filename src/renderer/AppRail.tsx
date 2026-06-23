@@ -4,24 +4,32 @@ interface AppRailProps {
   apps: AppInfo[]
   activeId?: string
   disabled: boolean
+  /** 'rail' = vertical left column (favicon + label); 'top' = compact icon row. */
+  variant: 'rail' | 'top'
   onOpen: (shortcutId: string) => void
   onAdd: () => void
   onContextMenu: (shortcutId: string) => void
 }
 
-// Vertical app rail (Shift-style) between the profile avatars and the page.
-// Each app shows its favicon, a short label, and an unread badge; clicking
-// opens/focuses that app's tab. Right-click to edit/remove; [+] adds an app.
+// The app launcher. In 'rail' mode it's a vertical column between the profile
+// avatars and the page (favicon + label + badge); in 'top' mode it's a compact
+// icon row pinned to the right of the title bar. Clicking opens/focuses the
+// app's tab; right-click to edit/remove; [+] adds an app.
 export function AppRail({
   apps,
   activeId,
   disabled,
+  variant,
   onOpen,
   onAdd,
   onContextMenu
 }: AppRailProps): JSX.Element {
   return (
-    <nav className="apprail" data-testid="apprail" aria-label="Apps">
+    <nav
+      className={`apprail${variant === 'top' ? ' apprail--top' : ''}`}
+      data-testid="apprail"
+      aria-label="Apps"
+    >
       {apps.map((app) => (
         <button
           key={app.id}
@@ -48,7 +56,7 @@ export function AppRail({
               </span>
             )}
           </span>
-          <span className="apprail__label">{app.label}</span>
+          {variant === 'rail' && <span className="apprail__label">{app.label}</span>}
         </button>
       ))}
       <button

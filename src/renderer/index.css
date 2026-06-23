@@ -429,6 +429,41 @@ body {
   border-radius: 3px;
 }
 
+/* 'top' layout: compact horizontal icon row pinned to the title bar's right. */
+.apprail--top {
+  width: auto;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 8px 0 4px;
+  overflow: visible;
+  -webkit-app-region: no-drag;
+}
+
+.apprail--top .apprail__item {
+  width: auto;
+  flex-direction: row;
+  padding: 4px;
+}
+
+.apprail--top .apprail__icon {
+  width: 26px;
+  height: 26px;
+}
+
+.apprail--top .apprail__icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.apprail--top .apprail__add {
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+}
+
 .content {
   flex: 1;
   display: flex;

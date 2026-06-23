@@ -5,7 +5,7 @@ import { TabStrip } from './TabStrip'
 import { AppRail } from './AppRail'
 import { AccountDialog, type DialogValues } from './AccountDialog'
 import { ShortcutDialog, type ShortcutValues } from './ShortcutDialog'
-import type { AccountSummary, AppInfo, NavState, TabInfo } from '../shared/types'
+import type { AccountSummary, AppInfo, AppRailLayout, NavState, TabInfo } from '../shared/types'
 
 interface DialogState {
   mode: 'add' | 'edit'
@@ -31,12 +31,15 @@ export function App(): JSX.Element {
   const [activeApp, setActiveApp] = useState<string | undefined>()
   const [shortcutDialog, setShortcutDialog] = useState<ShortcutDialogState | null>(null)
   const [tabs, setTabs] = useState<TabInfo[]>([])
+  const [layout, setLayout] = useState<AppRailLayout>('left')
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
     void window.glide.getActive().then(setActiveId)
     void window.glide.getNavState().then(setNav)
     void window.glide.getUnread().then(setUnread)
+    void window.glide.getLayout().then(setLayout)
+    const offLayout = window.glide.onLayoutChanged(setLayout)
     const offActive = window.glide.onActiveChanged(setActiveId)
     const offNav = window.glide.onNavState(setNav)
     const offUnread = window.glide.onUnread(({ id, count }) =>
@@ -74,6 +77,7 @@ export function App(): JSX.Element {
       offApps()
       offTabs()
       offList()
+      offLayout()
       offEditAccount()
       offEditShortcut()
     }
@@ -160,6 +164,19 @@ export function App(): JSX.Element {
     setShortcutDialog(null)
   }
 
+  const appRailProps = {
+    apps,
+    activeId: activeApp,
+    disabled: !activeId,
+    onOpen: (shortcutId: string) => {
+      if (activeId) void window.glide.openShortcut(activeId, shortcutId)
+    },
+    onAdd: openAddShortcut,
+    onContextMenu: (shortcutId: string) => {
+      if (activeId) void window.glide.showShortcutMenu(activeId, shortcutId)
+    }
+  }
+
   return (
     <div className="app">
       <div className="titlebar" data-testid="titlebar">
@@ -182,6 +199,7 @@ export function App(): JSX.Element {
             if (activeId) void window.glide.newTab(activeId)
           }}
         />
+        {layout === 'top' && <AppRail {...appRailProps} variant="top" />}
       </div>
 
       <div className="body">
@@ -194,18 +212,7 @@ export function App(): JSX.Element {
           onContextMenu={(id) => void window.glide.showAccountMenu(id)}
         />
 
-        <AppRail
-          apps={apps}
-          activeId={activeApp}
-          disabled={!activeId}
-          onOpen={(shortcutId) => {
-            if (activeId) void window.glide.openShortcut(activeId, shortcutId)
-          }}
-          onAdd={openAddShortcut}
-          onContextMenu={(shortcutId) => {
-            if (activeId) void window.glide.showShortcutMenu(activeId, shortcutId)
-          }}
-        />
+        {layout === 'left' && <AppRail {...appRailProps} variant="rail" />}
 
         <div className="main-col">
           <TopBar

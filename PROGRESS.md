@@ -98,6 +98,13 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ App-rail layout switch.** New persisted `layout` setting
+  (`'left' | 'top'`) toggled from **View → App Layout** (radio; menu rebuilds to
+  keep the check in sync). `'left'` = the vertical rail (current); `'top'` = a
+  compact favicon+badge icon row pinned to the right of the title bar. Main
+  computes content-left offset from the layout (`contentLeft()`); renderer mounts
+  `AppRail` in the title bar or as the left column via a `variant` prop. New IPC
+  (`layout:get` + `layout:changed`). guard + build + smoke + isolation pass.
 - **Polish — ✅ Omnibox search.** The address bar now resolves entries like a
   browser: explicit schemes and domain-like input (host.tld, paths, localhost,
   IPv4) navigate directly; anything with spaces or no dot becomes a Google search

@@ -4,6 +4,7 @@ import type {
   AccountPatch,
   AccountSummary,
   AppInfo,
+  AppRailLayout,
   NavState,
   NewAccountInput,
   Shortcut,
@@ -13,12 +14,11 @@ import type {
 } from '../shared/types'
 import type { PersistedAccount } from './persistence'
 
-// Two left columns: the profile avatars, then the vertical app rail. Content
-// starts to the right of both. The renderer reserves the matching widths/heights
-// in CSS (.sidebar, .apprail, .titlebar, .topbar); keep these in sync.
+// The profile avatars, then (in 'left' layout) the vertical app rail. Content
+// starts to the right. The renderer reserves the matching widths/heights in CSS
+// (.sidebar, .apprail, .titlebar, .topbar); keep these in sync.
 export const SIDEBAR_WIDTH = 64
 export const APP_RAIL_WIDTH = 84
-const CONTENT_LEFT = SIDEBAR_WIDTH + APP_RAIL_WIDTH
 export const TITLE_BAR_HEIGHT = 38
 export const TOP_BAR_HEIGHT = 44
 const TOP_CHROME_HEIGHT = TITLE_BAR_HEIGHT + TOP_BAR_HEIGHT
@@ -157,6 +157,8 @@ export class AccountManager {
   private overlayOpen = false
   // App-wide page zoom, applied to every tab and persisted across restarts.
   private zoomFactor = 1
+  // Where the app rail sits ('left' reserves a left column; 'top' does not).
+  private railLayout: AppRailLayout = 'left'
 
   constructor(win: BrowserWindow, onState?: () => void) {
     this.win = win
@@ -460,6 +462,22 @@ export class AccountManager {
     this.setZoom(1)
   }
 
+  getLayout(): AppRailLayout {
+    return this.railLayout
+  }
+
+  /** Move the app rail between the left column and the top-right icon row. */
+  setLayout(layout: AppRailLayout): void {
+    this.railLayout = layout
+    this.layout()
+    if (!this.win.isDestroyed()) this.win.webContents.send('layout:changed', layout)
+    this.onState?.()
+  }
+
+  private contentLeft(): number {
+    return SIDEBAR_WIDTH + (this.railLayout === 'left' ? APP_RAIL_WIDTH : 0)
+  }
+
   /** Show only the active account's active tab; keep all others alive but hidden. */
   private refreshVisibility(): void {
     for (const [accountId, account] of this.accounts) {
@@ -705,10 +723,11 @@ export class AccountManager {
     const [width, height] = this.win.getContentSize()
     const tab = this.activeTab()
     if (!tab) return
+    const left = this.contentLeft()
     tab.view.setBounds({
-      x: CONTENT_LEFT,
+      x: left,
       y: TOP_CHROME_HEIGHT,
-      width: Math.max(0, width - CONTENT_LEFT),
+      width: Math.max(0, width - left),
       height: Math.max(0, height - TOP_CHROME_HEIGHT)
     })
   }
