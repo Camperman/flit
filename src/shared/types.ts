@@ -4,6 +4,8 @@ export interface AccountSummary {
   id: string
   label: string
   color: string
+  /** Google account photo URL, scraped from the logged-in page (best-effort). */
+  avatarUrl?: string
 }
 
 export interface NewAccountInput {

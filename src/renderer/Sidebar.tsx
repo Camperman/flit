@@ -43,7 +43,11 @@ export function Sidebar({
                   onContextMenu(account.id)
                 }}
               >
-                {account.label.charAt(0).toUpperCase()}
+                {account.avatarUrl ? (
+                  <img className="account__img" src={account.avatarUrl} alt="" />
+                ) : (
+                  account.label.charAt(0).toUpperCase()
+                )}
               </button>
               {count > 0 && (
                 <span className="account__badge" data-testid={`badge-${account.id}`}>

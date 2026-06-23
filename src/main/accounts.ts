@@ -50,6 +50,7 @@ export interface AccountConfig {
   homeUrl: string
   lastUrl?: string
   shortcuts?: Shortcut[]
+  avatarUrl?: string
 }
 
 interface ManagedView {
@@ -58,7 +59,22 @@ interface ManagedView {
   currentUrl: string
   unread: number
   shortcuts: Shortcut[]
+  avatarUrl?: string
 }
+
+// Read-only snippet run in the logged-in Google page to find the account photo.
+const AVATAR_SCRIPT = `(() => {
+  const sels = [
+    'a[aria-label*="Google Account"] img',
+    'a[href^="https://accounts.google.com/SignOutOptions"] img',
+    'img.gbii', 'img.gb_P'
+  ]
+  for (const s of sels) {
+    const el = document.querySelector(s)
+    if (el && el.src && el.src.indexOf('http') === 0) return el.src
+  }
+  return null
+})()`
 
 export function partitionFor(id: string): string {
   return `persist:account-${id}`
@@ -190,7 +206,20 @@ export class AccountManager {
     const startUrl = config.lastUrl ?? config.homeUrl
     const shortcuts =
       config.shortcuts && config.shortcuts.length > 0 ? config.shortcuts : defaultShortcuts()
-    const managed: ManagedView = { config, view, currentUrl: startUrl, unread: 0, shortcuts }
+    const managed: ManagedView = {
+      config,
+      view,
+      currentUrl: startUrl,
+      unread: 0,
+      shortcuts,
+      avatarUrl: config.avatarUrl
+    }
+
+    // Best-effort: read the Google account photo once the page settles.
+    view.webContents.on('did-finish-load', () => {
+      this.extractAvatar(managed)
+      setTimeout(() => this.extractAvatar(managed), 2000)
+    })
 
     const onNavEvent = (): void => {
       managed.currentUrl = view.webContents.getURL()
@@ -337,9 +366,29 @@ export class AccountManager {
 
   summaries(): AccountSummary[] {
     return this.order.map((id) => {
-      const { config } = this.views.get(id)!
-      return { id: config.id, label: config.label, color: config.color }
+      const managed = this.views.get(id)!
+      return {
+        id: managed.config.id,
+        label: managed.config.label,
+        color: managed.config.color,
+        avatarUrl: managed.avatarUrl
+      }
     })
+  }
+
+  private extractAvatar(managed: ManagedView): void {
+    managed.view.webContents
+      .executeJavaScript(AVATAR_SCRIPT, true)
+      .then((url: unknown) => {
+        if (typeof url === 'string' && url && url !== managed.avatarUrl) {
+          managed.avatarUrl = url
+          this.emitUpdated()
+          this.onState?.()
+        }
+      })
+      .catch(() => {
+        // page not ready / not a Google page — ignore
+      })
   }
 
   /** Map of account id → session partition string (test/diagnostic use). */
@@ -360,7 +409,8 @@ export class AccountManager {
         homeUrl: config.homeUrl,
         lastUrl: currentUrl,
         order: index,
-        shortcuts: this.views.get(id)!.shortcuts
+        shortcuts: this.views.get(id)!.shortcuts,
+        avatarUrl: this.views.get(id)!.avatarUrl
       }
     })
   }

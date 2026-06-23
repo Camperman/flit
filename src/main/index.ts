@@ -83,7 +83,8 @@ function createWindow(): void {
       color: a.color,
       homeUrl: a.homeUrl,
       lastUrl: a.lastUrl,
-      shortcuts: a.shortcuts
+      shortcuts: a.shortcuts,
+      avatarUrl: a.avatarUrl
     }))
   accounts.load(configs)
 

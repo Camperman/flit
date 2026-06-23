@@ -82,6 +82,17 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Black title bar + Google profile photos.**
+  - Title bar: `titleBarStyle: 'hiddenInset'` + `trafficLightPosition`, near-black
+    window bg, sidebar/top-bar made draggable (`-webkit-app-region`) with controls
+    opting out, sidebar top padded to clear the traffic lights.
+  - Avatars: main runs a read-only snippet (`AVATAR_SCRIPT`) in each logged-in
+    Google page on `did-finish-load` to grab the account photo URL, stores it per
+    account, persists it (`avatarUrl`), and includes it in `AccountSummary`; the
+    sidebar shows the photo when present, else the colored letter. CSP relaxed to
+    allow `img-src https://*.googleusercontent.com`. **Best-effort**: only appears
+    once logged in and depends on Google's DOM (selectors may need updating). guard
+    + build + smoke + isolation pass.
 - **Fix — ✅ Overlay layering.** A native `WebContentsView` always paints above
   the HTML UI, so DOM context menus/modals appeared *behind* the Gmail pane.
   Fixed structurally: (1) right-click menus for accounts and shortcuts are now
