@@ -88,6 +88,10 @@ body {
   color: var(--text);
 }
 
+.tab[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .tab__title {
   flex: 1;
   overflow: hidden;

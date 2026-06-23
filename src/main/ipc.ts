@@ -66,6 +66,9 @@ export function registerIpc(accounts: AccountManager): void {
   ipcMain.handle('tabs:close', (_event, accountId: string, tabId: string) =>
     accounts.closeTab(accountId, tabId)
   )
+  ipcMain.handle('tabs:reorder', (_event, accountId: string, tabIds: string[]) =>
+    accounts.reorderTabs(accountId, tabIds)
+  )
   ipcMain.handle('tabs:list', (_event, accountId: string) => accounts.getTabs(accountId))
 
   ipcMain.handle('__test:partitions', () => accounts.partitions())

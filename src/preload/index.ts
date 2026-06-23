@@ -68,6 +68,7 @@ const api: GlideApi = {
   newTab: (accountId) => ipcRenderer.invoke('tabs:new', accountId),
   activateTab: (accountId, tabId) => ipcRenderer.invoke('tabs:activate', accountId, tabId),
   closeTab: (accountId, tabId) => ipcRenderer.invoke('tabs:close', accountId, tabId),
+  reorderTabs: (accountId, tabIds) => ipcRenderer.invoke('tabs:reorder', accountId, tabIds),
   getTabs: (accountId) => ipcRenderer.invoke('tabs:list', accountId),
   onTabsState: (cb) => {
     const listener = (_event: unknown, state: TabsState): void => cb(state)

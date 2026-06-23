@@ -173,6 +173,11 @@ export function App(): JSX.Element {
           onClose={(tabId) => {
             if (activeId) void window.glide.closeTab(activeId, tabId)
           }}
+          onReorder={(tabIds) => {
+            if (!activeId) return
+            setTabs((prev) => tabIds.map((id) => prev.find((t) => t.id === id)!).filter(Boolean))
+            void window.glide.reorderTabs(activeId, tabIds)
+          }}
           onNew={() => {
             if (activeId) void window.glide.newTab(activeId)
           }}

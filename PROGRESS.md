@@ -36,6 +36,18 @@ on" screen, click **Try another way** → "Tap Yes on your phone" (internet-base
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
 
+### Future feature — Chrome extension support (scoped, not built)
+The user wants this eventually (relies on: an **ad blocker** uBlock/AdBlock, a
+**password manager** 1Password/Bitwarden, **productivity** Grammarly/Loom).
+Recommended path = "Tier 2": add **electron-chrome-extensions** (+
+`electron-chrome-web-store` for installs), build a browser-action toolbar +
+popups in our chrome, manage installs per profile (per session partition), and
+**upgrade Electron 33 → 35+** (needed for Manifest V3 service workers). Caveats:
+not all extensions work (deep `webRequest`/`declarativeNetRequest`/native-
+messaging ones may be partial), and it's ongoing maintenance tied to Chromium.
+Native Electron `session.loadExtension` is the cheap "Tier 1" fallback for
+sideloading one unpacked extension, but only supports a subset of APIs.
+
 ### Deferred from Phase 7 (intentional)
 **Notification click → switch to that account.** Reliable mapping of an HTML5
 `Notification` click back to its originating account requires injecting script
@@ -86,6 +98,11 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Drag-to-reorder tabs.** Tabs in the strip are now `draggable`;
+  dragging shows a live preview (local order state) and commits on drop via
+  `reorderTabs` IPC, which reorders `account.tabs` in main and re-emits tab
+  state. Session-only (tabs aren't persisted). guard + build + smoke + isolation
+  pass. (Chrome extension support logged as a future feature — see above.)
 - **Phase 13 — ✅ App rail + favicons + per-app badges.** Added a vertical **app
   rail** (`AppRail.tsx`, `APP_RAIL_WIDTH`) between the profile avatars and the page,
   replacing the horizontal bookmarks bar; content now starts at SIDEBAR_WIDTH +

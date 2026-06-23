@@ -117,6 +117,8 @@ export interface GlideApi {
   activateTab(accountId: string, tabId: string): Promise<void>
   /** Close (unload) a tab by id. */
   closeTab(accountId: string, tabId: string): Promise<void>
+  /** Reorder tabs to match the given id order (drag-and-drop). */
+  reorderTabs(accountId: string, tabIds: string[]): Promise<void>
   getTabs(accountId: string): Promise<TabInfo[]>
   /** Subscribe to the active account's open tabs. Returns an unsubscribe fn. */
   onTabsState(cb: (state: TabsState) => void): () => void

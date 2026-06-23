@@ -276,6 +276,23 @@ export class AccountManager {
     this.afterTabChange(accountId, account)
   }
 
+  /** Reorder an account's tabs to match the given id order (drag-and-drop). */
+  reorderTabs(accountId: string, tabIds: string[]): void {
+    const account = this.accounts.get(accountId)
+    if (!account) return
+    const byId = new Map(account.tabs.map((t) => [t.id, t]))
+    const next: Tab[] = []
+    for (const id of tabIds) {
+      const tab = byId.get(id)
+      if (tab) next.push(tab)
+    }
+    // Keep any tabs not named in the new order (safety) at the end.
+    for (const tab of account.tabs) if (!tabIds.includes(tab.id)) next.push(tab)
+    if (next.length !== account.tabs.length) return
+    account.tabs = next
+    this.emitTabs(account)
+  }
+
   /** Close (unload) a tab; activate a neighbour if it was active. */
   closeTab(accountId: string, tabId: string): void {
     const account = this.accounts.get(accountId)
