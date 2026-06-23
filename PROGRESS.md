@@ -10,20 +10,20 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 2 | Multiple accounts + sidebar switching + isolation proof | ✅ |
 | 3 | Persistence | ✅ |
 | 4 | Account management UI (add/remove/edit) | ✅ |
-| 5 | Browser chrome (navigation) | ⬜ |
+| 5 | Browser chrome (navigation) | ✅ |
 | 6 | Visual identity + unread badges | ⬜ |
 | 7 | Notifications + keyboard shortcuts | ⬜ |
 | 8+ | Optional polish | ⬜ (only if requested) |
 
 ## Next up
-**Phase 5 — Browser chrome (navigation).** Slim top bar above the active account
-view: back, forward, reload, editable address field. Buttons/field act on the
-active account's `webContents` (goBack/goForward/reload/loadURL, prefix https://
-if missing). Address shows the live URL and updates on navigation; back/forward
-enabled state reflects history. Switching accounts swaps the bar to the new
-view's URL. Popups stay in the same partition (`setWindowOpenHandler`, §4.6).
-Note: the account view bounds must drop below the top bar height (currently y:0,
-full height) — reserve a top strip in `AccountManager.layout()`.
+**Phase 6 — Visual identity + unread badges.** Sidebar avatar = account color bg
++ first letter (already present); make active state clear (present). Add unread
+badges: parse the active/background view's page title for a leading `(\d+)`
+(Gmail's `Inbox (12) …`) and show a numeric badge on the sidebar item; update
+live; clear at zero. Title parsing must run for ALL accounts (background too),
+so AccountManager should watch every view's `page-title-updated`, extract the
+count, and push per-account unread counts to the renderer (e.g. `accounts:unread`
+{ id, count }). Sidebar renders the badge.
 
 ## Pending manual checks (need a real Google login)
 - **Phase 1:** Run `npm start`, log into Gmail in the account pane, quit, relaunch
@@ -44,8 +44,22 @@ full height) — reserve a top strip in `AccountManager.layout()`.
   (reflected immediately + after restart). Right-click → Remove deletes it from
   the sidebar and disk; re-adding the same account requires a fresh Google login
   (session was wiped). Confirm it all works with ≥4 accounts at once.
+- **Phase 5:** In one account, type `calendar.google.com` in the address bar →
+  navigates there, still logged into that same account; repeat for Drive/Docs.
+  Back/forward/reload work and enable/disable correctly. Switch accounts → the
+  address bar swaps to the other account's current URL. A Google popup (e.g.
+  compose-in-new-window or an OAuth prompt) opens logged into the same account.
 
 ## Phase log
+- **Phase 5 — ✅** Added browser chrome: a 44px top bar (`TopBar.tsx`) with
+  back/forward/reload + an editable address field, all acting on the active
+  account's webContents via IPC (`nav:back/forward/reload/go/state`). Main pushes
+  `nav:state` (url, canGoBack/Forward, title) on navigation, title change, and
+  active switch; uses the modern `webContents.navigationHistory` API. Account view
+  bounds now reserve the top strip (`TOP_BAR_HEIGHT`, kept in sync with the
+  `.topbar` CSS). `navigate()` prefixes `https://` via `normalizeUrl`. Popups stay
+  in-partition via `setWindowOpenHandler` with an overridden partition. guard +
+  build + smoke + isolation pass. In-pane navigation is a manual check (GUI).
 - **Phase 4 — ✅** Account set is now editable from the UI. Sidebar `[+]` opens an
   Add dialog (label, color, home URL); right-click an avatar → Edit (label/color)
   or Remove. Main gained `addAccount` (uuid + new partition + view, made active),

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AccountSummary, GlideApi } from '../shared/types'
+import type { AccountSummary, GlideApi, NavState } from '../shared/types'
 
 // Typed, minimal bridge exposed to the renderer. The renderer holds no session
 // state — it sends intents to main and renders state pushed back.
@@ -19,6 +19,16 @@ const api: GlideApi = {
     const listener = (_event: unknown, accounts: AccountSummary[]): void => cb(accounts)
     ipcRenderer.on('accounts:updated', listener)
     return () => ipcRenderer.removeListener('accounts:updated', listener)
+  },
+  goBack: () => ipcRenderer.invoke('nav:back'),
+  goForward: () => ipcRenderer.invoke('nav:forward'),
+  reload: () => ipcRenderer.invoke('nav:reload'),
+  navigate: (url) => ipcRenderer.invoke('nav:go', url),
+  getNavState: () => ipcRenderer.invoke('nav:state'),
+  onNavState: (cb) => {
+    const listener = (_event: unknown, state: NavState): void => cb(state)
+    ipcRenderer.on('nav:state', listener)
+    return () => ipcRenderer.removeListener('nav:state', listener)
   },
   __test: {
     partitions: () => ipcRenderer.invoke('__test:partitions'),

@@ -1,9 +1,12 @@
-import { BrowserWindow, WebContentsView, session } from 'electron'
+import { BrowserWindow, WebContents, WebContentsView, session } from 'electron'
 import { randomUUID } from 'crypto'
-import type { AccountPatch, AccountSummary, NewAccountInput } from '../shared/types'
+import type { AccountPatch, AccountSummary, NavState, NewAccountInput } from '../shared/types'
 import type { PersistedAccount } from './persistence'
 
 export const SIDEBAR_WIDTH = 64
+// Height of the renderer's browser-chrome top bar. The renderer reserves the
+// same strip in CSS (.topbar); keep these in sync.
+export const TOP_BAR_HEIGHT = 44
 
 export interface AccountConfig {
   id: string
@@ -131,14 +134,31 @@ export class AccountManager {
     const startUrl = config.lastUrl ?? config.homeUrl
     const managed: ManagedView = { config, view, currentUrl: startUrl }
 
-    const trackUrl = (url: string): void => {
-      managed.currentUrl = url
+    const onNavEvent = (): void => {
+      managed.currentUrl = view.webContents.getURL()
       this.onState?.()
+      if (this.activeId === config.id) this.emitNav()
     }
-    view.webContents.on('did-navigate', (_event, url) => trackUrl(url))
-    view.webContents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
-      if (isMainFrame) trackUrl(url)
+    view.webContents.on('did-navigate', onNavEvent)
+    view.webContents.on('did-navigate-in-page', (_event, _url, isMainFrame) => {
+      if (isMainFrame) onNavEvent()
     })
+    view.webContents.on('page-title-updated', () => {
+      if (this.activeId === config.id) this.emitNav()
+    })
+
+    // Keep popups (auth, "open in new window") in the same account session,
+    // never the default session (REQUIREMENTS.md §4.6).
+    view.webContents.setWindowOpenHandler(() => ({
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        webPreferences: {
+          partition: partitionFor(config.id),
+          contextIsolation: true,
+          nodeIntegration: false
+        }
+      }
+    }))
 
     void view.webContents.loadURL(startUrl)
 
@@ -160,11 +180,56 @@ export class AccountManager {
     if (!this.win.isDestroyed()) {
       this.win.webContents.send('accounts:active-changed', id)
     }
+    this.emitNav()
     this.onState?.()
   }
 
   getActiveId(): string | undefined {
     return this.activeId
+  }
+
+  private activeWebContents(): WebContents | undefined {
+    return this.activeId ? this.views.get(this.activeId)?.view.webContents : undefined
+  }
+
+  goBack(): void {
+    const wc = this.activeWebContents()
+    if (wc?.navigationHistory.canGoBack()) wc.navigationHistory.goBack()
+  }
+
+  goForward(): void {
+    const wc = this.activeWebContents()
+    if (wc?.navigationHistory.canGoForward()) wc.navigationHistory.goForward()
+  }
+
+  reload(): void {
+    this.activeWebContents()?.reload()
+  }
+
+  navigate(url: string): void {
+    const target = normalizeUrl(url)
+    if (target) void this.activeWebContents()?.loadURL(target)
+  }
+
+  getActiveNavState(): NavState | null {
+    return this.activeId ? this.navStateFor(this.activeId) : null
+  }
+
+  private navStateFor(id: string): NavState {
+    const wc = this.views.get(id)!.view.webContents
+    return {
+      accountId: id,
+      url: wc.getURL(),
+      canGoBack: wc.navigationHistory.canGoBack(),
+      canGoForward: wc.navigationHistory.canGoForward(),
+      title: wc.getTitle()
+    }
+  }
+
+  private emitNav(): void {
+    if (this.activeId && !this.win.isDestroyed()) {
+      this.win.webContents.send('nav:state', this.navStateFor(this.activeId))
+    }
   }
 
   summaries(): AccountSummary[] {
@@ -209,9 +274,9 @@ export class AccountManager {
     if (!active) return
     active.view.setBounds({
       x: SIDEBAR_WIDTH,
-      y: 0,
+      y: TOP_BAR_HEIGHT,
       width: Math.max(0, width - SIDEBAR_WIDTH),
-      height
+      height: Math.max(0, height - TOP_BAR_HEIGHT)
     })
   }
 }

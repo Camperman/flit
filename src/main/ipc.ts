@@ -19,6 +19,12 @@ export function registerIpc(accounts: AccountManager): void {
   )
   ipcMain.handle('accounts:remove', (_event, id: string) => accounts.removeAccount(id))
 
+  ipcMain.handle('nav:back', () => accounts.goBack())
+  ipcMain.handle('nav:forward', () => accounts.goForward())
+  ipcMain.handle('nav:reload', () => accounts.reload())
+  ipcMain.handle('nav:go', (_event, url: string) => accounts.navigate(url))
+  ipcMain.handle('nav:state', () => accounts.getActiveNavState())
+
   ipcMain.handle('__test:partitions', () => accounts.partitions())
 
   ipcMain.handle(

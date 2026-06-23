@@ -22,6 +22,15 @@ export interface TestCookie {
   value: string
 }
 
+/** Navigation state of the active account view, pushed to the top bar. */
+export interface NavState {
+  accountId: string
+  url: string
+  canGoBack: boolean
+  canGoForward: boolean
+  title: string
+}
+
 /** The bridge exposed on `window.glide` in the renderer (see preload). */
 export interface GlideApi {
   listAccounts(): Promise<AccountSummary[]>
@@ -30,6 +39,13 @@ export interface GlideApi {
   addAccount(input: NewAccountInput): Promise<void>
   updateAccount(id: string, patch: AccountPatch): Promise<void>
   removeAccount(id: string): Promise<void>
+  goBack(): Promise<void>
+  goForward(): Promise<void>
+  reload(): Promise<void>
+  navigate(url: string): Promise<void>
+  getNavState(): Promise<NavState | null>
+  /** Subscribe to active-view navigation state changes. Returns an unsubscribe fn. */
+  onNavState(cb: (state: NavState) => void): () => void
   /** Subscribe to active-account changes pushed from main. Returns an unsubscribe fn. */
   onActiveChanged(cb: (id: string) => void): () => void
   /** Subscribe to the account list changing (add/edit/remove). Returns an unsubscribe fn. */

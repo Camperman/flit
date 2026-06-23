@@ -101,6 +101,67 @@ body {
   border-color: var(--text);
 }
 
+.main-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Browser chrome. Height must match TOP_BAR_HEIGHT in src/main/accounts.ts. */
+.topbar {
+  height: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid #2a2d34;
+}
+
+.topbar__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.topbar__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.topbar__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.topbar__address {
+  flex: 1;
+  display: flex;
+}
+
+.topbar__address input {
+  flex: 1;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #2a2d34;
+  background: #1b1d22;
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.topbar__address input:focus {
+  border-color: var(--accent);
+}
+
 .content {
   flex: 1;
   display: flex;

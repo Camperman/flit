@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Sidebar } from './Sidebar'
+import { TopBar } from './TopBar'
 import { AccountDialog, type DialogValues } from './AccountDialog'
-import type { AccountSummary } from '../shared/types'
+import type { AccountSummary, NavState } from '../shared/types'
 
 interface DialogState {
   mode: 'add' | 'edit'
@@ -22,11 +23,14 @@ export function App(): JSX.Element {
   const [activeId, setActiveId] = useState<string | undefined>()
   const [dialog, setDialog] = useState<DialogState | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
+  const [nav, setNav] = useState<NavState | null>(null)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
     void window.glide.getActive().then(setActiveId)
+    void window.glide.getNavState().then(setNav)
     const offActive = window.glide.onActiveChanged(setActiveId)
+    const offNav = window.glide.onNavState(setNav)
     const offList = window.glide.onAccountsUpdated((next) => {
       setAccounts(next)
       setActiveId((current) =>
@@ -35,6 +39,7 @@ export function App(): JSX.Element {
     })
     return () => {
       offActive()
+      offNav()
       offList()
     }
   }, [])
@@ -86,14 +91,23 @@ export function App(): JSX.Element {
         onContextMenu={(id, x, y) => setMenu({ id, x, y })}
       />
 
-      <main className="content" data-testid="content">
-        {accounts.length === 0 && (
-          <div className="placeholder">
-            <h1>Glide</h1>
-            <p>No accounts yet — click the + to add one.</p>
-          </div>
-        )}
-      </main>
+      <div className="main-col">
+        <TopBar
+          nav={nav}
+          onBack={() => void window.glide.goBack()}
+          onForward={() => void window.glide.goForward()}
+          onReload={() => void window.glide.reload()}
+          onNavigate={(url) => void window.glide.navigate(url)}
+        />
+        <main className="content" data-testid="content">
+          {accounts.length === 0 && (
+            <div className="placeholder">
+              <h1>Glide</h1>
+              <p>No accounts yet — click the + to add one.</p>
+            </div>
+          )}
+        </main>
+      </div>
 
       {menu && (
         <div
