@@ -11,6 +11,7 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:smoke": "playwright test tests/smoke.spec.ts",
+    "test:isolation": "playwright test tests/isolation.spec.ts",
     "guard": "node scripts/guard.mjs"
   },
   "devDependencies": {

@@ -1,6 +1,15 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { AccountManager } from './accounts'
+import { AccountManager, type AccountConfig } from './accounts'
+import { registerIpc } from './ipc'
+
+// Phase 2: hardcoded seed accounts. Phase 3 loads these from disk; Phase 4
+// lets the user add/remove them from the UI.
+const SEED_ACCOUNTS: AccountConfig[] = [
+  { id: 'one', label: 'One', color: '#4c8bf5', url: 'https://mail.google.com' },
+  { id: 'two', label: 'Two', color: '#34a853', url: 'https://mail.google.com' },
+  { id: 'three', label: 'Three', color: '#ea4335', url: 'https://mail.google.com' }
+]
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -28,10 +37,10 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // Phase 1: one isolated account view loading Gmail. Phase 2 makes this
-  // multiple accounts driven by the sidebar.
+  // Multiple isolated account views, switchable from the sidebar.
   const accounts = new AccountManager(mainWindow)
-  accounts.createAccount('default', 'https://mail.google.com')
+  registerIpc(accounts)
+  accounts.load(SEED_ACCOUNTS)
 }
 
 app.whenReady().then(() => {

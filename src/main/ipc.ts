@@ -1,0 +1,33 @@
+import { ipcMain, session } from 'electron'
+import type { AccountManager } from './accounts'
+
+/**
+ * Wire the renderer ↔ main IPC for account listing and switching, plus the
+ * test-only channels used by tests/isolation.spec.ts. Test channels operate
+ * directly on session partitions, so they work without any page being loaded.
+ */
+export function registerIpc(accounts: AccountManager): void {
+  ipcMain.handle('accounts:list', () => accounts.summaries())
+  ipcMain.handle('accounts:active', () => accounts.getActiveId())
+  ipcMain.handle('accounts:switch', (_event, id: string) => accounts.setActive(id))
+
+  ipcMain.handle('__test:partitions', () => accounts.partitions())
+
+  ipcMain.handle(
+    '__test:set-cookie',
+    (_event, arg: { partition: string; url: string; name: string; value: string }) =>
+      session.fromPartition(arg.partition).cookies.set({
+        url: arg.url,
+        name: arg.name,
+        value: arg.value
+      })
+  )
+
+  ipcMain.handle(
+    '__test:get-cookies',
+    async (_event, arg: { partition: string; url: string }) => {
+      const cookies = await session.fromPartition(arg.partition).cookies.get({ url: arg.url })
+      return cookies.map((c) => ({ name: c.name, value: c.value }))
+    }
+  )
+}

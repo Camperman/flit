@@ -61,6 +61,29 @@ body {
   align-items: center;
 }
 
+.account {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: none;
+  background: var(--account-color, #555);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.12s ease, box-shadow 0.12s ease;
+}
+
+.account:hover {
+  opacity: 0.85;
+}
+
+.account--active {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--sidebar-bg), 0 0 0 4px var(--account-color, #fff);
+}
+
 .sidebar__add {
   width: 40px;
   height: 40px;
