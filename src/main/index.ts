@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { randomUUID } from 'crypto'
 import { join } from 'path'
 import { AccountManager, type AccountConfig } from './accounts'
 import { registerIpc } from './ipc'
@@ -26,8 +27,25 @@ function buildState(): PersistedState {
       : state.window,
     zoomFactor: accounts?.getZoom() ?? state.zoomFactor,
     layout: accounts?.getLayout() ?? state.layout,
-    bookmarksBar: accounts?.getBookmarksBarVisible() ?? state.bookmarksBar
+    bookmarksBar: accounts?.getBookmarksBarVisible() ?? state.bookmarksBar,
+    seededPasswordsApp: state.seededPasswordsApp
   }
+}
+
+// One-time: add the Passwords app to existing profiles that don't have it.
+function seedPasswordsApp(): void {
+  if (state.seededPasswordsApp) return
+  for (const account of state.accounts) {
+    if (account.shortcuts && !account.shortcuts.some((s) => s.url.includes('passwords.google.com'))) {
+      account.shortcuts.push({
+        id: randomUUID(),
+        label: 'Passwords',
+        url: 'https://passwords.google.com'
+      })
+    }
+  }
+  state.seededPasswordsApp = true
+  saveState(state)
 }
 
 function installMenu(): void {
@@ -123,6 +141,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   state = loadState()
+  seedPasswordsApp()
   createWindow()
 
   app.on('activate', () => {

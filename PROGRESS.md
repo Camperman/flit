@@ -98,6 +98,13 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Passwords app (passwords.google.com).** Added to the default app
+  set for new profiles, plus a one-time migration (`seedPasswordsApp`, guarded by
+  persisted `seededPasswordsApp`) that adds it to existing profiles that lack it —
+  so it won't reappear if later removed. (Context: Apple Passwords can't autofill
+  in Glide — Apple gates the iCloud Passwords native-messaging host to a
+  code-signature whitelist of approved browsers; Google Password Manager is the
+  practical in-app path.) guard + build + smoke + isolation pass.
 - **Polish — ✅ Drag-to-reorder apps.** App-rail items are now draggable (live
   preview during drag, commit on drop) via a `reorderShortcuts` IPC that reorders
   `account.shortcuts`, persists, and re-emits apps/shortcuts state. Works in both

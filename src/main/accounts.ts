@@ -39,7 +39,8 @@ function defaultShortcuts(): Shortcut[] {
     { label: 'Docs', url: 'https://docs.google.com' },
     { label: 'Sheets', url: 'https://sheets.google.com' },
     { label: 'Meet', url: 'https://meet.google.com' },
-    { label: 'Contacts', url: 'https://contacts.google.com' }
+    { label: 'Contacts', url: 'https://contacts.google.com' },
+    { label: 'Passwords', url: 'https://passwords.google.com' }
   ].map((s) => ({ id: randomUUID(), ...s }))
 }
 

@@ -31,6 +31,8 @@ export interface PersistedState {
   zoomFactor?: number
   layout?: AppRailLayout
   bookmarksBar?: boolean
+  /** One-time flag: the Passwords app has been seeded into existing profiles. */
+  seededPasswordsApp?: boolean
 }
 
 const DEFAULT_ACCOUNTS: PersistedAccount[] = [
