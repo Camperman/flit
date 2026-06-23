@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import type { AppInfo } from '../shared/types'
 
 interface AppRailProps {
@@ -7,6 +8,7 @@ interface AppRailProps {
   /** 'rail' = vertical left column (favicon + label); 'top' = compact icon row. */
   variant: 'rail' | 'top'
   onOpen: (shortcutId: string) => void
+  onReorder: (shortcutIds: string[]) => void
   onAdd: () => void
   onContextMenu: (shortcutId: string) => void
 }
@@ -21,16 +23,41 @@ export function AppRail({
   disabled,
   variant,
   onOpen,
+  onReorder,
   onAdd,
   onContextMenu
 }: AppRailProps): JSX.Element {
+  const dragId = useRef<string | null>(null)
+  const [order, setOrder] = useState<AppInfo[] | null>(null)
+  const shown = order ?? apps
+
+  const onDragStart = (id: string): void => {
+    dragId.current = id
+    setOrder(apps)
+  }
+  const onDragOver = (overId: string): void => {
+    const current = order ?? apps
+    const from = current.findIndex((a) => a.id === dragId.current)
+    const to = current.findIndex((a) => a.id === overId)
+    if (from === -1 || to === -1 || from === to) return
+    const next = [...current]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setOrder(next)
+  }
+  const onDragEnd = (): void => {
+    if (order) onReorder(order.map((a) => a.id))
+    dragId.current = null
+    setOrder(null)
+  }
+
   return (
     <nav
       className={`apprail${variant === 'top' ? ' apprail--top' : ''}`}
       data-testid="apprail"
       aria-label="Apps"
     >
-      {apps.map((app) => (
+      {shown.map((app) => (
         <button
           key={app.id}
           type="button"
@@ -38,7 +65,15 @@ export function AppRail({
           title={app.label}
           data-testid={`app-${app.id}`}
           disabled={disabled}
+          draggable
           onClick={() => onOpen(app.id)}
+          onDragStart={() => onDragStart(app.id)}
+          onDragOver={(e) => {
+            e.preventDefault()
+            onDragOver(app.id)
+          }}
+          onDragEnd={onDragEnd}
+          onDrop={onDragEnd}
           onContextMenu={(e) => {
             e.preventDefault()
             onContextMenu(app.id)

@@ -794,6 +794,26 @@ export class AccountManager {
     this.onState?.()
   }
 
+  /** Reorder a profile's apps (drag-and-drop in the app rail). */
+  reorderShortcuts(accountId: string, shortcutIds: string[]): void {
+    const account = this.accounts.get(accountId)
+    if (!account) return
+    const byId = new Map(account.shortcuts.map((s) => [s.id, s]))
+    const next: Shortcut[] = []
+    for (const id of shortcutIds) {
+      const shortcut = byId.get(id)
+      if (shortcut) next.push(shortcut)
+    }
+    for (const shortcut of account.shortcuts) {
+      if (!shortcutIds.includes(shortcut.id)) next.push(shortcut)
+    }
+    if (next.length !== account.shortcuts.length) return
+    account.shortcuts = next
+    this.emitShortcuts(accountId)
+    this.emitApps(account)
+    this.onState?.()
+  }
+
   removeShortcut(id: string, shortcutId: string): void {
     const account = this.accounts.get(id)
     if (!account) return

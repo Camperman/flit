@@ -47,6 +47,8 @@ const api: GlideApi = {
   },
   getShortcuts: (accountId) => ipcRenderer.invoke('shortcuts:list', accountId),
   getApps: (accountId) => ipcRenderer.invoke('apps:list', accountId),
+  reorderShortcuts: (accountId, shortcutIds) =>
+    ipcRenderer.invoke('apps:reorder', accountId, shortcutIds),
   onAppsState: (cb) => {
     const listener = (_event: unknown, state: AppsState): void => cb(state)
     ipcRenderer.on('apps:state', listener)

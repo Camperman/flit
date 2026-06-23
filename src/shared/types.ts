@@ -135,6 +135,8 @@ export interface GlideApi {
   onUnread(cb: (update: { id: string; count: number }) => void): () => void
   getShortcuts(accountId: string): Promise<Shortcut[]>
   getApps(accountId: string): Promise<{ apps: AppInfo[]; activeShortcutId?: string }>
+  /** Reorder a profile's apps (drag-and-drop in the app rail). */
+  reorderShortcuts(accountId: string, shortcutIds: string[]): Promise<void>
   /** Subscribe to the active profile's app rail state. Returns an unsubscribe fn. */
   onAppsState(cb: (state: AppsState) => void): () => void
   getLayout(): Promise<AppRailLayout>

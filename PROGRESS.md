@@ -98,6 +98,10 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Drag-to-reorder apps.** App-rail items are now draggable (live
+  preview during drag, commit on drop) via a `reorderShortcuts` IPC that reorders
+  `account.shortcuts`, persists, and re-emits apps/shortcuts state. Works in both
+  the left-rail and top-row layouts. guard + build + smoke + isolation pass.
 - **Phase 14 — ✅ Bookmarks bar + Chrome import (per profile).** Added a
   per-profile bookmark tree (`BookmarkNode` = link | folder, persisted on the
   account) and a **toggleable bookmarks bar** (View/Bookmarks → Show Bookmarks

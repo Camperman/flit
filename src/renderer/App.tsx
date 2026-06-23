@@ -196,6 +196,11 @@ export function App(): JSX.Element {
     onOpen: (shortcutId: string) => {
       if (activeId) void window.glide.openShortcut(activeId, shortcutId)
     },
+    onReorder: (shortcutIds: string[]) => {
+      if (!activeId) return
+      setApps((prev) => shortcutIds.map((id) => prev.find((a) => a.id === id)!).filter(Boolean))
+      void window.glide.reorderShortcuts(activeId, shortcutIds)
+    },
     onAdd: openAddShortcut,
     onContextMenu: (shortcutId: string) => {
       if (activeId) void window.glide.showShortcutMenu(activeId, shortcutId)

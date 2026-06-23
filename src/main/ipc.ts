@@ -36,6 +36,9 @@ export function registerIpc(accounts: AccountManager): void {
     accounts.shortcutsFor(accountId)
   )
   ipcMain.handle('apps:list', (_event, accountId: string) => accounts.getApps(accountId))
+  ipcMain.handle('apps:reorder', (_event, accountId: string, shortcutIds: string[]) =>
+    accounts.reorderShortcuts(accountId, shortcutIds)
+  )
   ipcMain.handle('layout:get', () => accounts.getLayout())
 
   ipcMain.handle('bookmarks:list', (_event, accountId: string) => accounts.getBookmarks(accountId))
