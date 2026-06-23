@@ -18,7 +18,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 10 | Shortcuts → persistent tabs (lazy, closeable) | ✅ |
 | 11 | General browser tabs (tab strip, + new tab, any URL) | ✅ |
 | 13 | App rail + favicons + per-app badges | ✅ |
-| 12 | Multiple windows (Cmd-N) | ⬜ (queued) |
+| 12 | Multiple windows (Cmd-N) | ⬜ (deferred — single window is sufficient for now) |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining work is optional polish
