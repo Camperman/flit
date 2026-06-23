@@ -20,6 +20,7 @@ interface ManagedView {
   config: AccountConfig
   view: WebContentsView
   currentUrl: string
+  unread: number
 }
 
 export function partitionFor(id: string): string {
@@ -32,6 +33,12 @@ export function normalizeUrl(url: string): string {
   if (!trimmed) return ''
   if (/^https?:\/\//i.test(trimmed)) return trimmed
   return `https://${trimmed}`
+}
+
+/** Extract an unread count from a page title, e.g. "Inbox (12) - … - Gmail" → 12. */
+export function parseUnread(title: string): number {
+  const match = title.match(/\((\d+)\)/)
+  return match ? parseInt(match[1], 10) : 0
 }
 
 /**
@@ -132,7 +139,7 @@ export class AccountManager {
     view.setBackgroundColor('#ffffff')
 
     const startUrl = config.lastUrl ?? config.homeUrl
-    const managed: ManagedView = { config, view, currentUrl: startUrl }
+    const managed: ManagedView = { config, view, currentUrl: startUrl, unread: 0 }
 
     const onNavEvent = (): void => {
       managed.currentUrl = view.webContents.getURL()
@@ -143,7 +150,14 @@ export class AccountManager {
     view.webContents.on('did-navigate-in-page', (_event, _url, isMainFrame) => {
       if (isMainFrame) onNavEvent()
     })
-    view.webContents.on('page-title-updated', () => {
+    // Title updates fire for ALL accounts (incl. background), so unread counts
+    // stay live even for accounts you aren't currently viewing.
+    view.webContents.on('page-title-updated', (_event, title) => {
+      const count = parseUnread(title)
+      if (count !== managed.unread) {
+        managed.unread = count
+        this.emitUnread(config.id, count)
+      }
       if (this.activeId === config.id) this.emitNav()
     })
 
@@ -265,6 +279,19 @@ export class AccountManager {
     if (!this.win.isDestroyed()) {
       this.win.webContents.send('accounts:updated', this.summaries())
     }
+  }
+
+  private emitUnread(id: string, count: number): void {
+    if (!this.win.isDestroyed()) {
+      this.win.webContents.send('accounts:unread', { id, count })
+    }
+  }
+
+  /** Current unread count per account id (for the renderer's initial fetch). */
+  unreadAll(): Record<string, number> {
+    const out: Record<string, number> = {}
+    for (const id of this.order) out[id] = this.views.get(id)!.unread
+    return out
   }
 
   /** Re-position the active account view in the area right of the sidebar. */

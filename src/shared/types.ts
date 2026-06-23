@@ -46,6 +46,9 @@ export interface GlideApi {
   getNavState(): Promise<NavState | null>
   /** Subscribe to active-view navigation state changes. Returns an unsubscribe fn. */
   onNavState(cb: (state: NavState) => void): () => void
+  getUnread(): Promise<Record<string, number>>
+  /** Subscribe to per-account unread-count changes. Returns an unsubscribe fn. */
+  onUnread(cb: (update: { id: string; count: number }) => void): () => void
   /** Subscribe to active-account changes pushed from main. Returns an unsubscribe fn. */
   onActiveChanged(cb: (id: string) => void): () => void
   /** Subscribe to the account list changing (add/edit/remove). Returns an unsubscribe fn. */

@@ -11,19 +11,18 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 3 | Persistence | ✅ |
 | 4 | Account management UI (add/remove/edit) | ✅ |
 | 5 | Browser chrome (navigation) | ✅ |
-| 6 | Visual identity + unread badges | ⬜ |
+| 6 | Visual identity + unread badges | ✅ |
 | 7 | Notifications + keyboard shortcuts | ⬜ |
 | 8+ | Optional polish | ⬜ (only if requested) |
 
 ## Next up
-**Phase 6 — Visual identity + unread badges.** Sidebar avatar = account color bg
-+ first letter (already present); make active state clear (present). Add unread
-badges: parse the active/background view's page title for a leading `(\d+)`
-(Gmail's `Inbox (12) …`) and show a numeric badge on the sidebar item; update
-live; clear at zero. Title parsing must run for ALL accounts (background too),
-so AccountManager should watch every view's `page-title-updated`, extract the
-count, and push per-account unread counts to the renderer (e.g. `accounts:unread`
-{ id, count }). Sidebar renders the badge.
+**Phase 7 — Notifications + keyboard shortcuts (completes the "first complete cut").**
+Allow the `notifications` permission per account session
+(`session.setPermissionRequestHandler`); confirm Google notifications surface as
+native macOS notifications. A background account with activity shows a dot/badge
+(unread already covers part of this). Clicking a notification focuses the window
+and switches to the originating account. Add Cmd-1 … Cmd-9 (via Electron
+`globalShortcut` or an app `Menu` accelerator) to switch to the Nth account.
 
 ## Pending manual checks (need a real Google login)
 - **Phase 1:** Run `npm start`, log into Gmail in the account pane, quit, relaunch
@@ -49,8 +48,19 @@ count, and push per-account unread counts to the renderer (e.g. `accounts:unread
   Back/forward/reload work and enable/disable correctly. Switch accounts → the
   address bar swaps to the other account's current URL. A Google popup (e.g.
   compose-in-new-window or an OAuth prompt) opens logged into the same account.
+- **Phase 6:** With Gmail logged in, a sidebar avatar shows a red unread badge
+  matching the inbox's `Inbox (N)` count; read/receive mail → the badge updates
+  live, including for accounts you aren't currently viewing; clears at zero.
 
 ## Phase log
+- **Phase 6 — ✅** Unread badges: `AccountManager` watches every view's
+  `page-title-updated` (incl. background accounts), parses a leading `(\d+)` from
+  the title (`parseUnread`), stores per-account counts, and pushes
+  `accounts:unread` {id,count} to the renderer (+ `accounts:unread-all` for the
+  initial fetch). Sidebar renders a numeric badge (99+ cap) on each avatar,
+  cleared at zero. Colored avatars + active highlight were already in place from
+  Phase 2. guard + build + smoke + isolation pass. Live badge updates are a manual
+  check (needs real Gmail).
 - **Phase 5 — ✅** Added browser chrome: a 44px top bar (`TopBar.tsx`) with
   back/forward/reload + an editable address field, all acting on the active
   account's webContents via IPC (`nav:back/forward/reload/go/state`). Main pushes

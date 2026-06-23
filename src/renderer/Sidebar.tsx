@@ -4,16 +4,18 @@ import type { AccountSummary } from '../shared/types'
 interface SidebarProps {
   accounts: AccountSummary[]
   activeId?: string
+  unread: Record<string, number>
   onSelect: (id: string) => void
   onAdd: () => void
   onContextMenu: (id: string, x: number, y: number) => void
 }
 
-// Left rail of account avatars. Click switches; right-click opens edit/remove.
-// Phase 6 adds avatar polish + unread badges.
+// Left rail of account avatars with unread badges. Click switches; right-click
+// opens edit/remove.
 export function Sidebar({
   accounts,
   activeId,
+  unread,
   onSelect,
   onAdd,
   onContextMenu
@@ -24,24 +26,33 @@ export function Sidebar({
         G
       </div>
       <div className="sidebar__accounts">
-        {accounts.map((account) => (
-          <button
-            key={account.id}
-            type="button"
-            className={`account${account.id === activeId ? ' account--active' : ''}`}
-            style={{ '--account-color': account.color } as CSSProperties}
-            title={account.label}
-            data-testid={`account-${account.id}`}
-            aria-pressed={account.id === activeId}
-            onClick={() => onSelect(account.id)}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              onContextMenu(account.id, e.clientX, e.clientY)
-            }}
-          >
-            {account.label.charAt(0).toUpperCase()}
-          </button>
-        ))}
+        {accounts.map((account) => {
+          const count = unread[account.id] ?? 0
+          return (
+            <div key={account.id} className="account-slot">
+              <button
+                type="button"
+                className={`account${account.id === activeId ? ' account--active' : ''}`}
+                style={{ '--account-color': account.color } as CSSProperties}
+                title={account.label}
+                data-testid={`account-${account.id}`}
+                aria-pressed={account.id === activeId}
+                onClick={() => onSelect(account.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  onContextMenu(account.id, e.clientX, e.clientY)
+                }}
+              >
+                {account.label.charAt(0).toUpperCase()}
+              </button>
+              {count > 0 && (
+                <span className="account__badge" data-testid={`badge-${account.id}`}>
+                  {count > 99 ? '99+' : count}
+                </span>
+              )}
+            </div>
+          )
+        })}
       </div>
       <button
         className="sidebar__add"

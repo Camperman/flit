@@ -24,13 +24,18 @@ export function App(): JSX.Element {
   const [dialog, setDialog] = useState<DialogState | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [nav, setNav] = useState<NavState | null>(null)
+  const [unread, setUnread] = useState<Record<string, number>>({})
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
     void window.glide.getActive().then(setActiveId)
     void window.glide.getNavState().then(setNav)
+    void window.glide.getUnread().then(setUnread)
     const offActive = window.glide.onActiveChanged(setActiveId)
     const offNav = window.glide.onNavState(setNav)
+    const offUnread = window.glide.onUnread(({ id, count }) =>
+      setUnread((prev) => ({ ...prev, [id]: count }))
+    )
     const offList = window.glide.onAccountsUpdated((next) => {
       setAccounts(next)
       setActiveId((current) =>
@@ -40,6 +45,7 @@ export function App(): JSX.Element {
     return () => {
       offActive()
       offNav()
+      offUnread()
       offList()
     }
   }, [])
@@ -86,6 +92,7 @@ export function App(): JSX.Element {
       <Sidebar
         accounts={accounts}
         activeId={activeId}
+        unread={unread}
         onSelect={handleSelect}
         onAdd={openAdd}
         onContextMenu={(id, x, y) => setMenu({ id, x, y })}

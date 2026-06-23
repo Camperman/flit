@@ -61,6 +61,30 @@ body {
   align-items: center;
 }
 
+.account-slot {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.account__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #ea4335;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--sidebar-bg);
+  pointer-events: none;
+}
+
 .account {
   width: 40px;
   height: 40px;

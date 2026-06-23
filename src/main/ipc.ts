@@ -25,6 +25,8 @@ export function registerIpc(accounts: AccountManager): void {
   ipcMain.handle('nav:go', (_event, url: string) => accounts.navigate(url))
   ipcMain.handle('nav:state', () => accounts.getActiveNavState())
 
+  ipcMain.handle('accounts:unread-all', () => accounts.unreadAll())
+
   ipcMain.handle('__test:partitions', () => accounts.partitions())
 
   ipcMain.handle(

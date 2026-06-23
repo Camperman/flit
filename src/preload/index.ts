@@ -30,6 +30,12 @@ const api: GlideApi = {
     ipcRenderer.on('nav:state', listener)
     return () => ipcRenderer.removeListener('nav:state', listener)
   },
+  getUnread: () => ipcRenderer.invoke('accounts:unread-all'),
+  onUnread: (cb) => {
+    const listener = (_event: unknown, update: { id: string; count: number }): void => cb(update)
+    ipcRenderer.on('accounts:unread', listener)
+    return () => ipcRenderer.removeListener('accounts:unread', listener)
+  },
   __test: {
     partitions: () => ipcRenderer.invoke('__test:partitions'),
     setCookie: (arg) => ipcRenderer.invoke('__test:set-cookie', arg),
