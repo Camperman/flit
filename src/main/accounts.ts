@@ -12,11 +12,13 @@ import type {
 import type { PersistedAccount } from './persistence'
 
 export const SIDEBAR_WIDTH = 64
-// Heights of the renderer's two chrome strips (top bar + shortcuts bar). The
-// renderer reserves the same strips in CSS (.topbar, .shortcuts); keep in sync.
+// Heights of the renderer's chrome strips, top to bottom: a draggable title
+// bar, the nav/address toolbar, then the shortcuts bar. The renderer reserves
+// the same strips in CSS (.titlebar, .topbar, .shortcuts); keep these in sync.
+export const TITLE_BAR_HEIGHT = 30
 export const TOP_BAR_HEIGHT = 44
 export const SHORTCUTS_BAR_HEIGHT = 40
-const TOP_CHROME_HEIGHT = TOP_BAR_HEIGHT + SHORTCUTS_BAR_HEIGHT
+const TOP_CHROME_HEIGHT = TITLE_BAR_HEIGHT + TOP_BAR_HEIGHT + SHORTCUTS_BAR_HEIGHT
 
 /** The Google services seeded into every new profile's shortcuts bar. */
 function defaultShortcuts(): Shortcut[] {

@@ -49,7 +49,7 @@ function createWindow(): void {
     // Black, frameless-feeling title bar: hide the native bar and let our dark
     // chrome run to the top, with the traffic lights floating over the sidebar.
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 14, y: 18 },
+    trafficLightPosition: { x: 14, y: 8 },
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

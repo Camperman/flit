@@ -138,42 +138,51 @@ export function App(): JSX.Element {
     setShortcutDialog(null)
   }
 
+  const activeLabel = accounts.find((a) => a.id === activeId)?.label
+  const titleText = nav?.title || activeLabel || 'Glide'
+
   return (
     <div className="app">
-      <Sidebar
-        accounts={accounts}
-        activeId={activeId}
-        unread={unread}
-        onSelect={handleSelect}
-        onAdd={openAdd}
-        onContextMenu={(id) => void window.glide.showAccountMenu(id)}
-      />
+      <div className="titlebar" data-testid="titlebar">
+        <span className="titlebar__text">{titleText}</span>
+      </div>
 
-      <div className="main-col">
-        <TopBar
-          nav={nav}
-          onBack={() => void window.glide.goBack()}
-          onForward={() => void window.glide.goForward()}
-          onReload={() => void window.glide.reload()}
-          onNavigate={(url) => void window.glide.navigate(url)}
+      <div className="body">
+        <Sidebar
+          accounts={accounts}
+          activeId={activeId}
+          unread={unread}
+          onSelect={handleSelect}
+          onAdd={openAdd}
+          onContextMenu={(id) => void window.glide.showAccountMenu(id)}
         />
-        <ShortcutsBar
-          shortcuts={shortcuts}
-          disabled={!activeId}
-          onOpen={(url) => void window.glide.navigate(url)}
-          onAdd={openAddShortcut}
-          onContextMenu={(shortcutId) => {
-            if (activeId) void window.glide.showShortcutMenu(activeId, shortcutId)
-          }}
-        />
-        <main className="content" data-testid="content">
-          {accounts.length === 0 && (
-            <div className="placeholder">
-              <h1>Glide</h1>
-              <p>No accounts yet — click the + to add one.</p>
-            </div>
-          )}
-        </main>
+
+        <div className="main-col">
+          <TopBar
+            nav={nav}
+            onBack={() => void window.glide.goBack()}
+            onForward={() => void window.glide.goForward()}
+            onReload={() => void window.glide.reload()}
+            onNavigate={(url) => void window.glide.navigate(url)}
+          />
+          <ShortcutsBar
+            shortcuts={shortcuts}
+            disabled={!activeId}
+            onOpen={(url) => void window.glide.navigate(url)}
+            onAdd={openAddShortcut}
+            onContextMenu={(shortcutId) => {
+              if (activeId) void window.glide.showShortcutMenu(activeId, shortcutId)
+            }}
+          />
+          <main className="content" data-testid="content">
+            {accounts.length === 0 && (
+              <div className="placeholder">
+                <h1>Glide</h1>
+                <p>No accounts yet — click the + to add one.</p>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
 
       {dialog && (

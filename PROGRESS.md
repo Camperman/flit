@@ -82,6 +82,13 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Dedicated title bar (Shift-style layout).** Reworked the chrome
+  into three stacked strips: a 30px draggable black **title bar** at the very top
+  (traffic lights on its left, shows the active page/account title centered), then
+  the nav/address **toolbar** (no longer draggable — address bar is out of the
+  title area), then the shortcuts bar. `.app` is now a column with a `.body` row
+  holding the sidebar + main column. Account view offset = TITLE_BAR + TOP_BAR +
+  SHORTCUTS_BAR. guard + build + smoke + isolation pass.
 - **Polish — ✅ Black title bar + Google profile photos.**
   - Title bar: `titleBarStyle: 'hiddenInset'` + `trafficLightPosition`, near-black
     window bg, sidebar/top-bar made draggable (`-webkit-app-region`) with controls

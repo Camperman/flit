@@ -26,7 +26,36 @@ body {
 
 .app {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+}
+
+/* Draggable black title bar (Shift-style). Height must match TITLE_BAR_HEIGHT
+   in src/main/accounts.ts. Traffic lights are positioned over its left edge. */
+.titlebar {
+  height: 30px;
+  flex: 0 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sidebar-bg);
+  -webkit-app-region: drag;
+}
+
+.titlebar__text {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 
 .sidebar {
@@ -36,16 +65,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Extra top padding clears the macOS traffic lights (hiddenInset title bar). */
-  padding: 40px 0 10px;
+  padding: 10px 0;
   gap: 10px;
-  /* The sidebar top doubles as a draggable title-bar region. */
-  -webkit-app-region: drag;
-}
-
-.sidebar .account-slot,
-.sidebar .sidebar__add {
-  -webkit-app-region: no-drag;
 }
 
 .sidebar__brand {
@@ -158,13 +179,6 @@ body {
   padding: 0 8px;
   background: var(--sidebar-bg);
   border-bottom: 1px solid #2a2d34;
-  /* Empty areas of the top bar drag the window; controls opt out below. */
-  -webkit-app-region: drag;
-}
-
-.topbar__btn,
-.topbar__address {
-  -webkit-app-region: no-drag;
 }
 
 .topbar__btn {
