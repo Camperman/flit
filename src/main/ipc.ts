@@ -1,5 +1,6 @@
 import { ipcMain, session } from 'electron'
 import type { AccountManager } from './accounts'
+import type { AccountPatch, NewAccountInput } from '../shared/types'
 
 /**
  * Wire the renderer ↔ main IPC for account listing and switching, plus the
@@ -10,6 +11,13 @@ export function registerIpc(accounts: AccountManager): void {
   ipcMain.handle('accounts:list', () => accounts.summaries())
   ipcMain.handle('accounts:active', () => accounts.getActiveId())
   ipcMain.handle('accounts:switch', (_event, id: string) => accounts.setActive(id))
+  ipcMain.handle('accounts:add', (_event, input: NewAccountInput) => {
+    accounts.addAccount(input)
+  })
+  ipcMain.handle('accounts:update', (_event, id: string, patch: AccountPatch) =>
+    accounts.updateAccount(id, patch)
+  )
+  ipcMain.handle('accounts:remove', (_event, id: string) => accounts.removeAccount(id))
 
   ipcMain.handle('__test:partitions', () => accounts.partitions())
 

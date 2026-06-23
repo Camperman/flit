@@ -1,5 +1,6 @@
-import { BrowserWindow, WebContentsView } from 'electron'
-import type { AccountSummary } from '../shared/types'
+import { BrowserWindow, WebContentsView, session } from 'electron'
+import { randomUUID } from 'crypto'
+import type { AccountPatch, AccountSummary, NewAccountInput } from '../shared/types'
 import type { PersistedAccount } from './persistence'
 
 export const SIDEBAR_WIDTH = 64
@@ -20,6 +21,14 @@ interface ManagedView {
 
 export function partitionFor(id: string): string {
   return `persist:account-${id}`
+}
+
+/** Ensure a user-entered URL has a scheme; blank stays blank (caller defaults). */
+export function normalizeUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
 }
 
 /**
@@ -48,6 +57,63 @@ export class AccountManager {
 
   load(configs: AccountConfig[]): void {
     for (const config of configs) this.createAccount(config)
+  }
+
+  /** Add a brand-new account (UI-driven), make it active, and persist. */
+  addAccount(input: NewAccountInput): string {
+    const id = randomUUID()
+    this.createAccount({
+      id,
+      label: input.label.trim() || 'Account',
+      color: input.color || '#888888',
+      homeUrl: normalizeUrl(input.homeUrl) || 'https://mail.google.com'
+    })
+    this.setActive(id)
+    this.emitUpdated()
+    this.onState?.()
+    return id
+  }
+
+  /** Edit an existing account's label/color. */
+  updateAccount(id: string, patch: AccountPatch): void {
+    const managed = this.views.get(id)
+    if (!managed) return
+    if (patch.label !== undefined) managed.config.label = patch.label.trim() || managed.config.label
+    if (patch.color !== undefined) managed.config.color = patch.color
+    this.emitUpdated()
+    this.onState?.()
+  }
+
+  /**
+   * Remove an account: destroy its view AND clear its partition's session data
+   * so the account is truly gone (re-adding requires a fresh login).
+   */
+  async removeAccount(id: string): Promise<void> {
+    const managed = this.views.get(id)
+    if (!managed) return
+
+    this.win.contentView.removeChildView(managed.view)
+    try {
+      ;(managed.view.webContents as unknown as { destroy?: () => void }).destroy?.()
+    } catch {
+      // already gone
+    }
+    this.views.delete(id)
+    this.order = this.order.filter((x) => x !== id)
+
+    try {
+      await session.fromPartition(partitionFor(id)).clearStorageData()
+    } catch {
+      // best-effort wipe
+    }
+
+    if (this.activeId === id) {
+      this.activeId = undefined
+      const next = this.order[0]
+      if (next) this.setActive(next)
+    }
+    this.emitUpdated()
+    this.onState?.()
   }
 
   createAccount(config: AccountConfig): void {
@@ -128,6 +194,12 @@ export class AccountManager {
         order: index
       }
     })
+  }
+
+  private emitUpdated(): void {
+    if (!this.win.isDestroyed()) {
+      this.win.webContents.send('accounts:updated', this.summaries())
+    }
   }
 
   /** Re-position the active account view in the area right of the sidebar. */

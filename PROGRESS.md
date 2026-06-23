@@ -9,20 +9,21 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 1 | One isolated account view | ✅ |
 | 2 | Multiple accounts + sidebar switching + isolation proof | ✅ |
 | 3 | Persistence | ✅ |
-| 4 | Account management UI (add/remove/edit) | ⬜ |
+| 4 | Account management UI (add/remove/edit) | ✅ |
 | 5 | Browser chrome (navigation) | ⬜ |
 | 6 | Visual identity + unread badges | ⬜ |
 | 7 | Notifications + keyboard shortcuts | ⬜ |
 | 8+ | Optional polish | ⬜ (only if requested) |
 
 ## Next up
-**Phase 4 — Account management UI (add/remove/edit).** Bottom-of-sidebar `[+]`
-opens an "Add account" dialog (label, color, optional home URL → default Gmail);
-adding creates a new partition + view + item, persisted immediately. Hover/right-
-click an item → Edit (label/color) or Remove. Remove destroys the view AND
-clears that partition's session data (truly gone). Must work with ≥4 accounts.
-Needs IPC: addAccount / updateAccount / removeAccount + an `accounts:updated`
-push so the sidebar re-renders. The `[+]` button is currently disabled.
+**Phase 5 — Browser chrome (navigation).** Slim top bar above the active account
+view: back, forward, reload, editable address field. Buttons/field act on the
+active account's `webContents` (goBack/goForward/reload/loadURL, prefix https://
+if missing). Address shows the live URL and updates on navigation; back/forward
+enabled state reflects history. Switching accounts swaps the bar to the new
+view's URL. Popups stay in the same partition (`setWindowOpenHandler`, §4.6).
+Note: the account view bounds must drop below the top bar height (currently y:0,
+full height) — reserve a top strip in `AccountManager.layout()`.
 
 ## Pending manual checks (need a real Google login)
 - **Phase 1:** Run `npm start`, log into Gmail in the account pane, quit, relaunch
@@ -38,8 +39,22 @@ push so the sidebar re-renders. The `[+]` button is currently disabled.
   active account, same window geometry. Then quit, delete
   `~/Library/Application Support/Glide/glide-state.json`, relaunch → clean start
   with the 3 default accounts (no crash).
+- **Phase 4:** Click `[+]`, add an account (label/color/URL) → it appears, becomes
+  active, and works; survives restart. Right-click → Edit changes label/color
+  (reflected immediately + after restart). Right-click → Remove deletes it from
+  the sidebar and disk; re-adding the same account requires a fresh Google login
+  (session was wiped). Confirm it all works with ≥4 accounts at once.
 
 ## Phase log
+- **Phase 4 — ✅** Account set is now editable from the UI. Sidebar `[+]` opens an
+  Add dialog (label, color, home URL); right-click an avatar → Edit (label/color)
+  or Remove. Main gained `addAccount` (uuid + new partition + view, made active),
+  `updateAccount`, and `removeAccount` (destroys the view AND calls
+  `clearStorageData()` on its partition so the account is truly gone), plus an
+  `accounts:updated` push so the sidebar re-renders. New IPC + preload methods +
+  shared types. guard + build + smoke + isolation pass. Add/edit/remove behavior
+  is a manual check (GUI). (Note: respected the §2.2 non-goal of "no tests beyond
+  §6" — no new test file added.)
 - **Phase 3 — ✅** Added `src/main/persistence.ts` (load/save `PersistedState`
   JSON in userData, defaults on missing/corrupt). `AccountManager` now tracks each
   account's current URL (did-navigate / in-page) and exposes `snapshotAccounts()`.

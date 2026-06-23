@@ -92,7 +92,13 @@ body {
   background: transparent;
   color: var(--muted);
   font-size: 20px;
-  cursor: not-allowed;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.sidebar__add:hover {
+  color: var(--text);
+  border-color: var(--text);
 }
 
 .content {
@@ -110,4 +116,113 @@ body {
 .placeholder h1 {
   color: var(--text);
   margin-bottom: 8px;
+}
+
+/* Context menu (right-click an account) */
+.context-menu {
+  position: fixed;
+  z-index: 20;
+  background: #2a2d34;
+  border: 1px solid #3a3e47;
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 120px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.context-menu__danger {
+  color: #ff6b6b;
+}
+
+/* Modal dialog (add / edit account) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #23262d;
+  border: 1px solid #3a3e47;
+  border-radius: 12px;
+  padding: 20px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field input[type='text'] {
+  background: #1b1d22;
+  border: 1px solid #3a3e47;
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.field input[type='color'] {
+  width: 48px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #3a3e47;
+  border-radius: 6px;
+  background: transparent;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #3a3e47;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }

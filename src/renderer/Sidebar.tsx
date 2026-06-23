@@ -5,11 +5,19 @@ interface SidebarProps {
   accounts: AccountSummary[]
   activeId?: string
   onSelect: (id: string) => void
+  onAdd: () => void
+  onContextMenu: (id: string, x: number, y: number) => void
 }
 
-// Left rail of account avatars. Clicking one switches the active account.
-// Phase 4 adds the [+] add flow; Phase 6 adds avatars/colors polish + badges.
-export function Sidebar({ accounts, activeId, onSelect }: SidebarProps): JSX.Element {
+// Left rail of account avatars. Click switches; right-click opens edit/remove.
+// Phase 6 adds avatar polish + unread badges.
+export function Sidebar({
+  accounts,
+  activeId,
+  onSelect,
+  onAdd,
+  onContextMenu
+}: SidebarProps): JSX.Element {
   return (
     <nav className="sidebar" data-testid="sidebar" aria-label="Accounts">
       <div className="sidebar__brand" title="Glide">
@@ -26,12 +34,22 @@ export function Sidebar({ accounts, activeId, onSelect }: SidebarProps): JSX.Ele
             data-testid={`account-${account.id}`}
             aria-pressed={account.id === activeId}
             onClick={() => onSelect(account.id)}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              onContextMenu(account.id, e.clientX, e.clientY)
+            }}
           >
             {account.label.charAt(0).toUpperCase()}
           </button>
         ))}
       </div>
-      <button className="sidebar__add" type="button" title="Add account (Phase 4)" disabled>
+      <button
+        className="sidebar__add"
+        type="button"
+        title="Add account"
+        data-testid="add-account"
+        onClick={onAdd}
+      >
         +
       </button>
     </nav>
