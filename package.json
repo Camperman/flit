@@ -36,6 +36,7 @@
     "directories": { "output": "dist" },
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "assets/glide-app-icon.icns",
       "identity": null,
       "extendInfo": {
         "NSBluetoothAlwaysUsageDescription": "Glide uses Bluetooth for passkey (security key) sign-in.",
