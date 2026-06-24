@@ -16,3 +16,24 @@ test('boots with a Glide window and sidebar', async () => {
 
   await app.close()
 })
+
+// Multi-window: a second window opens independently and shares the same app.
+test('opens a second independent window', async () => {
+  const app = await electron.launch({
+    args: [join(__dirname, '..', 'out', 'main', 'index.js')]
+  })
+
+  const first = await app.firstWindow()
+  await first.locator('[data-testid="sidebar"]').waitFor()
+
+  const [second] = await Promise.all([
+    app.waitForEvent('window'),
+    first.evaluate(() => window.glide.newWindow())
+  ])
+
+  await expect(second).toHaveTitle(/Glide/)
+  await second.locator('[data-testid="sidebar"]').waitFor()
+  expect(app.windows().length).toBeGreaterThanOrEqual(2)
+
+  await app.close()
+})

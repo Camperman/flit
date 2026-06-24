@@ -10,18 +10,17 @@ import { loadState, saveState, type PersistedState } from './persistence'
 // the generic "Electron" dir with every other dev app).
 app.setName('Glide')
 
-let mainWindow: BrowserWindow | undefined
 let accounts: AccountManager | undefined
 let state: PersistedState = { version: 1, accounts: [] }
-
 let persistTimer: NodeJS.Timeout | undefined
 
 function buildState(): PersistedState {
-  const bounds = mainWindow && !mainWindow.isDestroyed() ? mainWindow.getBounds() : undefined
+  const focused = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  const bounds = focused && !focused.isDestroyed() ? focused.getBounds() : undefined
   return {
     version: 1,
     accounts: accounts ? accounts.snapshotAccounts() : state.accounts,
-    activeAccountId: accounts?.getActiveId() ?? state.activeAccountId,
+    activeAccountId: accounts?.defaultActiveId() ?? state.activeAccountId,
     window: bounds
       ? { width: bounds.width, height: bounds.height, x: bounds.x, y: bounds.y }
       : state.window,
@@ -50,7 +49,11 @@ function seedPasswordsApp(): void {
 
 function installMenu(): void {
   buildAppMenu({
-    switchToIndex: (index) => accounts?.setActiveByIndex(index),
+    newWindow: () => createWindow(),
+    switchToIndex: (index) => {
+      const win = BrowserWindow.getFocusedWindow()
+      if (win) accounts?.setActiveByIndex(win, index)
+    },
     zoomIn: () => accounts?.zoomIn(),
     zoomOut: () => accounts?.zoomOut(),
     zoomReset: () => accounts?.zoomReset(),
@@ -64,7 +67,7 @@ function installMenu(): void {
       accounts?.setBookmarksBarVisible(!accounts.getBookmarksBarVisible())
       installMenu()
     },
-    importBookmarks: () => mainWindow?.webContents.send('menu:import-bookmarks')
+    importBookmarks: () => BrowserWindow.getFocusedWindow()?.webContents.send('menu:import-bookmarks')
   })
 }
 
@@ -79,16 +82,16 @@ function schedulePersist(): void {
 }
 
 function createWindow(): void {
+  const isFirst = BrowserWindow.getAllWindows().length === 0
   const win = new BrowserWindow({
     width: state.window?.width ?? 1280,
     height: state.window?.height ?? 800,
-    x: state.window?.x,
-    y: state.window?.y,
+    // Only the first window restores the saved position; extra windows cascade.
+    x: isFirst ? state.window?.x : undefined,
+    y: isFirst ? state.window?.y : undefined,
     title: 'Glide',
     show: false,
     backgroundColor: '#0b0b0d',
-    // Black, frameless-feeling title bar: hide the native bar and let our dark
-    // chrome run to the top, with the traffic lights floating over the sidebar.
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 14, y: 8 },
     webPreferences: {
@@ -98,23 +101,42 @@ function createWindow(): void {
       sandbox: false
     }
   })
-  mainWindow = win
 
   win.on('ready-to-show', () => win.show())
   win.on('resize', schedulePersist)
   win.on('move', schedulePersist)
 
-  // The React renderer is the base layer (sidebar + chrome); account
-  // WebContentsViews are overlaid on top of it.
   if (process.env['ELECTRON_RENDERER_URL']) {
     void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     void win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // Restore accounts from persisted state, each on its own isolated partition.
-  accounts = new AccountManager(win, schedulePersist)
-  registerIpc(accounts)
+  // The manager builds this window's account views once the page is ready.
+  win.webContents.once('did-finish-load', () => {
+    accounts?.registerWindow(win, state.activeAccountId)
+  })
+}
+
+// Only one Glide process per macOS user. Multiple processes would each open the
+// same per-user session partitions and fight over Chromium's LevelDB locks,
+// corrupting the data and crashing. A second launch opens a new window instead.
+const gotInstanceLock = app.requestSingleInstanceLock()
+if (!gotInstanceLock) {
+  app.quit()
+}
+
+app.on('second-instance', () => {
+  if (accounts) createWindow()
+})
+
+app.whenReady().then(() => {
+  if (!gotInstanceLock) return
+  state = loadState()
+  seedPasswordsApp()
+
+  accounts = new AccountManager(schedulePersist)
+  registerIpc(accounts, createWindow)
 
   const configs: AccountConfig[] = [...state.accounts]
     .sort((a, b) => a.order - b.order)
@@ -126,39 +148,14 @@ function createWindow(): void {
       lastUrl: a.lastUrl,
       shortcuts: a.shortcuts,
       avatarUrl: a.avatarUrl,
-      activeShortcutId: a.activeShortcutId,
       bookmarks: a.bookmarks
     }))
-  accounts.load(configs)
-
-  if (state.activeAccountId) accounts.setActive(state.activeAccountId)
+  accounts.loadMetadata(configs)
   if (state.zoomFactor) accounts.setZoom(state.zoomFactor)
   if (state.layout) accounts.setLayout(state.layout)
   if (state.bookmarksBar) accounts.setBookmarksBarVisible(true)
 
   installMenu()
-}
-
-// Only one Glide process per macOS user. Multiple processes would each open the
-// same per-user session partitions and fight over Chromium's LevelDB locks,
-// corrupting the data and crashing. A second launch focuses the existing window.
-const gotInstanceLock = app.requestSingleInstanceLock()
-if (!gotInstanceLock) {
-  app.quit()
-}
-
-app.on('second-instance', () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.show()
-    mainWindow.focus()
-  }
-})
-
-app.whenReady().then(() => {
-  if (!gotInstanceLock) return
-  state = loadState()
-  seedPasswordsApp()
   createWindow()
 
   app.on('activate', () => {

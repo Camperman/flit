@@ -13,6 +13,7 @@ import type {
 // Typed, minimal bridge exposed to the renderer. The renderer holds no session
 // state — it sends intents to main and renders state pushed back.
 const api: GlideApi = {
+  newWindow: () => ipcRenderer.invoke('window:new'),
   listAccounts: () => ipcRenderer.invoke('accounts:list'),
   getActive: () => ipcRenderer.invoke('accounts:active'),
   switchAccount: (id) => ipcRenderer.invoke('accounts:switch', id),

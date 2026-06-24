@@ -2,6 +2,7 @@ import { Menu, type MenuItemConstructorOptions } from 'electron'
 import type { AppRailLayout } from '../shared/types'
 
 export interface MenuHandlers {
+  newWindow: () => void
   switchToIndex: (index: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -30,6 +31,16 @@ export function buildAppMenu(handlers: MenuHandlers): void {
     ...(process.platform === 'darwin'
       ? [{ role: 'appMenu' } as MenuItemConstructorOptions]
       : []),
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Window',
+          accelerator: 'CommandOrControl+N',
+          click: () => handlers.newWindow()
+        }
+      ]
+    },
     { role: 'editMenu' },
     {
       label: 'View',

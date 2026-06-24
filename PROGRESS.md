@@ -18,7 +18,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 10 | Shortcuts → persistent tabs (lazy, closeable) | ✅ |
 | 11 | General browser tabs (tab strip, + new tab, any URL) | ✅ |
 | 13 | App rail + favicons + per-app badges | ✅ |
-| 12 | Multiple windows (Cmd-N) | ⬜ (deferred — single window is sufficient for now) |
+| 12 | Multiple windows (Cmd-N) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining work is optional polish
@@ -98,6 +98,19 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Phase 12 — ✅ Multiple windows (Cmd-N).** Refactored `AccountManager` from
+  single-window to multi-window: account **metadata + app settings are shared**
+  (one source of truth, single persistence writer), while **tabs / active profile
+  / unread are per-window**, keyed by `BrowserWindow.id`. Each window builds its
+  own WebContentsViews; metadata mutations (add/edit/remove account, shortcuts,
+  bookmarks, avatar, zoom/layout/bookmarks-bar) **broadcast to all windows**. IPC
+  now resolves the sending window via `BrowserWindow.fromWebContents`. New Window
+  = **Cmd-N** (File menu) or a second app launch (single-instance `second-instance`
+  → new window). Each window opens to the default active profile and shares all
+  logins/sessions. New automated test (`opens a second independent window`) joins
+  the smoke suite. guard + build + smoke (×2) + isolation pass. Notes: each window
+  eagerly loads all profiles' initial tabs (more memory per window — expected); new
+  windows open to the saved default profile.
 - **Fix — ✅ Single-instance lock (crash fix).** Glide had no single-instance
   guard, so launching it more than once (or relaunching while a stale/hung
   instance lived) ran multiple processes that all opened the same per-user

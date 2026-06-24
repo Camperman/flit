@@ -117,6 +117,8 @@ export interface TabsState {
 
 /** The bridge exposed on `window.glide` in the renderer (see preload). */
 export interface GlideApi {
+  /** Open a new app window (Cmd-N). */
+  newWindow(): Promise<void>
   listAccounts(): Promise<AccountSummary[]>
   getActive(): Promise<string | undefined>
   switchAccount(id: string): Promise<void>
