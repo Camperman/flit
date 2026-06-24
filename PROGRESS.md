@@ -98,6 +98,15 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Fix — ✅ Single-instance lock (crash fix).** Glide had no single-instance
+  guard, so launching it more than once (or relaunching while a stale/hung
+  instance lived) ran multiple processes that all opened the same per-user
+  session partitions and fought over Chromium's LevelDB locks — corrupting data
+  and crashing (observed: repeated "Failed to open LevelDB … LOCK" + "quota
+  database resetting" in the diagnostic log). Added `app.requestSingleInstanceLock()`:
+  a second launch quits and focuses the existing window instead. This is also the
+  correct foundation for multi-window (one process, many windows). guard + build +
+  smoke + isolation pass.
 - **Polish — ✅ Machine-shared settings (cross macOS user).** Moved the config
   JSON from per-user `userData` to `/Users/Shared/Glide/glide-state.json` (dir
   `0777`, file `0666`) so every macOS user account on this Mac loads the same

@@ -139,7 +139,24 @@ function createWindow(): void {
   installMenu()
 }
 
+// Only one Glide process per macOS user. Multiple processes would each open the
+// same per-user session partitions and fight over Chromium's LevelDB locks,
+// corrupting the data and crashing. A second launch focuses the existing window.
+const gotInstanceLock = app.requestSingleInstanceLock()
+if (!gotInstanceLock) {
+  app.quit()
+}
+
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  }
+})
+
 app.whenReady().then(() => {
+  if (!gotInstanceLock) return
   state = loadState()
   seedPasswordsApp()
   createWindow()
