@@ -1,7 +1,12 @@
 import { app } from 'electron'
-import { readFileSync, writeFileSync } from 'fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { AppRailLayout, BookmarkNode, Shortcut } from '../shared/types'
+
+// Settings live in a machine-shared location so any macOS user account on this
+// computer loads the same profiles/apps/bookmarks/layout. (Logins/sessions stay
+// private per macOS user in each user's own userData — not shared.)
+const SHARED_DIR = '/Users/Shared/Glide'
 
 export interface PersistedAccount {
   id: string
@@ -46,11 +51,41 @@ export function defaultState(): PersistedState {
 }
 
 function statePath(): string {
+  return join(SHARED_DIR, 'glide-state.json')
+}
+
+/** The pre-sharing per-user location, used once to migrate into the shared dir. */
+function legacyStatePath(): string {
   return join(app.getPath('userData'), 'glide-state.json')
 }
 
-/** Load persisted state, falling back to defaults on missing/corrupt/invalid file. */
+/** Create the shared dir world-writable so every macOS user can read/write it. */
+function ensureSharedDir(): void {
+  try {
+    if (!existsSync(SHARED_DIR)) {
+      mkdirSync(SHARED_DIR, { recursive: true })
+      chmodSync(SHARED_DIR, 0o777)
+    }
+  } catch {
+    // best-effort
+  }
+}
+
+/** Load shared state, migrating a legacy per-user file in once, else defaults. */
 export function loadState(): PersistedState {
+  ensureSharedDir()
+  try {
+    if (!existsSync(statePath()) && existsSync(legacyStatePath())) {
+      writeFileSync(statePath(), readFileSync(legacyStatePath(), 'utf8'), 'utf8')
+      try {
+        chmodSync(statePath(), 0o666)
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore — fall through to normal load
+  }
   try {
     const parsed = JSON.parse(readFileSync(statePath(), 'utf8')) as PersistedState
     if (
@@ -67,10 +102,19 @@ export function loadState(): PersistedState {
   }
 }
 
-/** Best-effort write; persistence failures are non-fatal for a personal tool. */
+/**
+ * Best-effort write to the shared config. The file is made world-writable so a
+ * different macOS user can update it later. Failures are non-fatal.
+ */
 export function saveState(state: PersistedState): void {
   try {
+    ensureSharedDir()
     writeFileSync(statePath(), JSON.stringify(state, null, 2), 'utf8')
+    try {
+      chmodSync(statePath(), 0o666)
+    } catch {
+      // not the owner (another user created it) — content write already succeeded
+    }
   } catch {
     // ignore
   }

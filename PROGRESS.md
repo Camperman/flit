@@ -98,6 +98,14 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Machine-shared settings (cross macOS user).** Moved the config
+  JSON from per-user `userData` to `/Users/Shared/Glide/glide-state.json` (dir
+  `0777`, file `0666`) so every macOS user account on this Mac loads the same
+  profiles/apps/bookmarks/layout/zoom. Migrates the legacy per-user file in once
+  on first run. **Settings only** — Google sessions/logins stay private per macOS
+  user in each user's own `userData` (not shared), by design. guard + build +
+  smoke + isolation pass. Verified the shared file is created world-writable with
+  the real config migrated.
 - **Polish — ✅ Passwords app (passwords.google.com).** Added to the default app
   set for new profiles, plus a one-time migration (`seedPasswordsApp`, guarded by
   persisted `seededPasswordsApp`) that adds it to existing profiles that lack it —
