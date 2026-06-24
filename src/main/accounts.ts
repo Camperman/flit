@@ -390,6 +390,21 @@ export class AccountManager {
       }
     })
 
+    // Popups (auth, compose, …) share this account's partition. When a Google
+    // sign-in popup closes, reload the opener so the completed login is picked
+    // up (the auth cookie is already in this partition).
+    wc.on('did-create-window', (child) => {
+      let sawAuth = false
+      const check = (_e: unknown, navUrl: string): void => {
+        if (navUrl.includes('accounts.google.com')) sawAuth = true
+      }
+      child.webContents.on('did-navigate', check)
+      child.webContents.on('did-navigate-in-page', check)
+      child.on('closed', () => {
+        if (sawAuth && !wc.isDestroyed()) wc.reload()
+      })
+    })
+
     // In-page navigations to app protocols (Zoom's "launch meeting", mailto, …).
     wc.on('will-navigate', (e, url) => {
       if (isExternalProtocol(url)) {

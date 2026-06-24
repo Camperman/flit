@@ -98,6 +98,13 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Fix — ✅ Google login popup hands session back.** OAuth sign-in opens a
+  popup (`accounts.google.com`, sharing the account partition); after it closes
+  the opener now reloads, so the completed login is reflected in the main view
+  (previously the original view stayed logged-out). Implemented via
+  `webContents.on('did-create-window')` → watch the child for an
+  accounts.google.com navigation → reload the opener on the child's `closed`.
+  guard + build + smoke (×2) + isolation pass.
 - **Fix — ✅ External-protocol links + bookmarks overflow + test isolation.**
   - **Zoom/app links:** `zoommtg://` (and `mailto:`, Teams, `tel:`, …) now hand off
     to the native app via `shell.openExternal`. Handled in each view's
