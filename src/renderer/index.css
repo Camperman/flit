@@ -195,6 +195,12 @@ body {
 .account {
   width: 40px;
   height: 40px;
+  /* Zero the default button padding (wider horizontally) so the image stays a
+     true circle instead of a narrow "cat's eye" oval. */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   border: none;
   /* Neutral fill only shows behind the letter fallback; the photo fills it. */
