@@ -98,6 +98,12 @@ isolated preload as a conscious, documented tradeoff.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Shift-style chrome tweaks.** Profile avatars (and the add-profile
+  button) are now **circles** (`border-radius: 50%`); softer **rounded corners**
+  across tabs, app rail, modal, buttons, app icons; **folder icon** (inline SVG)
+  next to bookmark folders; and the **active app reads like a selected tab** —
+  a filled, rounded "wrap" around the icon + label. guard + build + smoke (×2) +
+  isolation pass. (Pure renderer CSS/markup.)
 - **Polish — ✅ Links open as tabs (with right-click → new window).** The window-
   open handler now routes by disposition: `foreground-tab`/`background-tab` (link /
   target=_blank opens) become **new tabs** in the current profile; only real
