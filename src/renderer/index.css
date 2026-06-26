@@ -3,6 +3,9 @@
      (sidebar + bookmarks/tab strip). */
   --chrome-black: #0b0b0d;
   --panel-bg: #202124;
+  /* Slightly darker strip behind tabs so the active tab (panel color) stands
+     out and connects down into the toolbar/content. */
+  --tabstrip-bg: #17181b;
   --omnibox-bg: #2b2c2f;
   --hairline: #000000;
   --sidebar-bg: #202124;
@@ -44,7 +47,7 @@ body {
   flex: 0 0 38px;
   display: flex;
   align-items: flex-end;
-  background: var(--panel-bg);
+  background: var(--tabstrip-bg);
   -webkit-app-region: drag;
 }
 
@@ -84,7 +87,8 @@ body {
 }
 
 .tab--active {
-  background: var(--omnibox-bg);
+  /* Toolbar color + flush bottom → the active tab connects into the content. */
+  background: var(--panel-bg);
   color: var(--text);
 }
 
@@ -431,12 +435,14 @@ body {
   border-radius: 3px;
 }
 
-/* 'top' layout: compact horizontal icon row pinned to the title bar's right. */
+/* 'top' layout: compact horizontal icon row pinned to the title bar's right.
+   Items sit at the bottom edge; the active one becomes a tab that rises to the
+   bottom of the strip in the toolbar color, so it connects into the content. */
 .apprail--top {
   width: auto;
   flex: 0 0 auto;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
   gap: 2px;
   height: 100%;
   padding: 0 8px 0 4px;
@@ -447,7 +453,19 @@ body {
 .apprail--top .apprail__item {
   width: auto;
   flex-direction: row;
-  padding: 4px;
+  height: 30px;
+  margin-bottom: 4px;
+  padding: 0 6px;
+  border-radius: 8px;
+}
+
+.apprail--top .apprail__item--active {
+  height: 100%;
+  margin-bottom: 0;
+  padding: 0 8px;
+  border-radius: 10px 10px 0 0;
+  background: var(--panel-bg);
+  box-shadow: none;
 }
 
 .apprail--top .apprail__icon {
