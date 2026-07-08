@@ -59,10 +59,39 @@ function seedPasswordsApp(): void {
 }
 
 function installMenu(): void {
+  const focused = (): BrowserWindow | null => BrowserWindow.getFocusedWindow()
   buildAppMenu({
     newWindow: () => createWindow(),
-    openPreferences: () =>
-      BrowserWindow.getFocusedWindow()?.webContents.send('menu:preferences'),
+    openPreferences: () => focused()?.webContents.send('menu:preferences'),
+    newTab: () => {
+      const win = focused()
+      if (win) accounts?.newTabInActive(win)
+    },
+    closeTab: () => {
+      const win = focused()
+      if (win) accounts?.closeActiveTab(win)
+    },
+    reopenTab: () => {
+      const win = focused()
+      if (win) accounts?.reopenClosedTab(win)
+    },
+    nextTab: () => {
+      const win = focused()
+      if (win) accounts?.cycleTab(win, 1)
+    },
+    prevTab: () => {
+      const win = focused()
+      if (win) accounts?.cycleTab(win, -1)
+    },
+    focusAddress: () => focused()?.webContents.send('menu:focus-address'),
+    find: () => {
+      const win = focused()
+      if (win) accounts?.openFind(win)
+    },
+    print: () => {
+      const win = focused()
+      if (win) accounts?.printActive(win)
+    },
     // macOS shows its own "use Glide as your default browser?" confirmation.
     setDefaultBrowser: () => {
       app.setAsDefaultProtocolClient('http')

@@ -143,6 +143,31 @@ const api: GlideApi = {
     ipcRenderer.on('menu:preferences', listener)
     return () => ipcRenderer.removeListener('menu:preferences', listener)
   },
+  onFindOpen: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('find:open', listener)
+    return () => ipcRenderer.removeListener('find:open', listener)
+  },
+  onFindResult: (cb) => {
+    const listener = (
+      _event: unknown,
+      result: { matches: number; activeMatchOrdinal: number }
+    ): void => cb(result)
+    ipcRenderer.on('find:result', listener)
+    return () => ipcRenderer.removeListener('find:result', listener)
+  },
+  findInPage: (text, next, forward) => ipcRenderer.invoke('find:query', text, next, forward),
+  stopFind: () => ipcRenderer.invoke('find:stop'),
+  onFindClose: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('find:close', listener)
+    return () => ipcRenderer.removeListener('find:close', listener)
+  },
+  onFocusAddress: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('menu:focus-address', listener)
+    return () => ipcRenderer.removeListener('menu:focus-address', listener)
+  },
   chooseDownloadsDir: () => ipcRenderer.invoke('prefs:choose-downloads-dir'),
   isDefaultBrowser: () => ipcRenderer.invoke('prefs:is-default-browser'),
   makeDefaultBrowser: () => ipcRenderer.invoke('prefs:make-default-browser'),

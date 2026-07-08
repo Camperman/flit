@@ -8,6 +8,7 @@ import { ChromeImportDialog } from './ChromeImportDialog'
 import { AccountDialog, type DialogValues } from './AccountDialog'
 import { ShortcutDialog, type ShortcutValues } from './ShortcutDialog'
 import { Downloads } from './Downloads'
+import { FindBar } from './FindBar'
 import { PreferencesDialog } from './PreferencesDialog'
 import type {
   AccountSummary,
@@ -53,6 +54,7 @@ export function App(): JSX.Element {
   const [prefsState, setPrefsState] = useState<PrefsState | null>(null)
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [hasExtensions, setHasExtensions] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
@@ -75,6 +77,8 @@ export function App(): JSX.Element {
     void window.glide.getPrefs().then(setPrefsState)
     const offPrefs = window.glide.onPrefsChanged(setPrefsState)
     const offOpenPrefs = window.glide.onOpenPreferences(() => setPrefsOpen(true))
+    const offFindOpen = window.glide.onFindOpen(() => setFindOpen(true))
+    const offFindClose = window.glide.onFindClose(() => setFindOpen(false))
     const offActive = window.glide.onActiveChanged(setActiveId)
     const offNav = window.glide.onNavState(setNav)
     const offUnread = window.glide.onUnread(({ id, count }) =>
@@ -119,6 +123,8 @@ export function App(): JSX.Element {
       offDownloads()
       offPrefs()
       offOpenPrefs()
+      offFindOpen()
+      offFindClose()
       offEditAccount()
       offEditShortcut()
     }
@@ -299,6 +305,14 @@ export function App(): JSX.Element {
               onClose={() => setDownloadsOpen(false)}
             />
           </TopBar>
+          {findOpen && (
+            <FindBar
+              onClose={() => {
+                setFindOpen(false)
+                void window.glide.stopFind()
+              }}
+            />
+          )}
           {bookmarksBar && (
             <BookmarksBar
               bookmarks={bookmarks}

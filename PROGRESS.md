@@ -26,6 +26,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 18 | Friends-tier distribution (signing/notarization/DMG/GPL) | ✅ |
 | 19 | Default-browser registration + open-url (passkey-entitlement prereq) | ✅ |
 | 20 | Preferences window (themes, color profiles, extensions, downloads) | ✅ |
+| 21 | Browser basics (find-in-page, tab shortcuts, spell-check, print) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -66,6 +67,19 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 21 notes — browser basics (2026-07-08)
+- **Find in page (Cmd-F)**: find bar occupies a chrome row (main shrinks the
+  web view via `FIND_BAR_HEIGHT` in `topChrome`) so the page stays visible —
+  no overlay. Live "n / m" counter from `found-in-page`; Enter/Shift-Enter
+  cycle; Esc closes; dismissed automatically on account switch.
+- **Tab shortcuts**: Cmd-T new tab, **Cmd-W now closes the tab** (window is
+  Cmd-Shift-W; closing an account's last tab no-ops — accounts are
+  workspaces), Cmd-Shift-T reopens (25-deep per-window stack), Ctrl-Tab /
+  Cmd-Shift-]/[ cycle, Cmd-L focuses the address bar, Cmd-P prints.
+- **Spell-check**: right-click a squiggled word → suggestions + Add to
+  Dictionary (params.dictionarySuggestions were previously ignored).
+Manual checks: Cmd-F in Gmail shows live match counts; Cmd-W muscle memory.
 
 ### Phase 20 notes — Preferences (2026-07-08)
 Preferences window (⚙ at sidebar bottom, or Glide → Preferences… / Cmd-,),

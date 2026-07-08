@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import type { NavState } from '../shared/types'
 
 interface TopBarProps {
@@ -28,11 +28,20 @@ export function TopBar({
   children
 }: TopBarProps): JSX.Element {
   const [value, setValue] = useState(nav?.url ?? '')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Follow the active view's URL as it navigates / switches accounts or tabs.
   useEffect(() => {
     setValue(nav?.url ?? '')
   }, [nav?.url, nav?.accountId, nav?.tabId])
+
+  // Cmd-L: focus + select the address field.
+  useEffect(() => {
+    return window.glide.onFocusAddress(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+  }, [])
 
   const submit = (e: FormEvent): void => {
     e.preventDefault()
@@ -70,6 +79,7 @@ export function TopBar({
       </button>
       <form className="topbar__address" onSubmit={submit}>
         <input
+          ref={inputRef}
           type="text"
           value={value}
           spellCheck={false}

@@ -6,6 +6,14 @@ export interface MenuHandlers {
   openPreferences: () => void
   setDefaultBrowser: () => void
   switchToIndex: (index: number) => void
+  newTab: () => void
+  closeTab: () => void
+  reopenTab: () => void
+  nextTab: () => void
+  prevTab: () => void
+  focusAddress: () => void
+  find: () => void
+  print: () => void
   zoomIn: () => void
   zoomOut: () => void
   zoomReset: () => void
@@ -57,9 +65,37 @@ export function buildAppMenu(handlers: MenuHandlers): void {
       label: 'File',
       submenu: [
         {
+          label: 'New Tab',
+          accelerator: 'CommandOrControl+T',
+          click: () => handlers.newTab()
+        },
+        {
           label: 'New Window',
           accelerator: 'CommandOrControl+N',
           click: () => handlers.newWindow()
+        },
+        {
+          label: 'Reopen Closed Tab',
+          accelerator: 'CommandOrControl+Shift+T',
+          click: () => handlers.reopenTab()
+        },
+        { type: 'separator' },
+        {
+          label: 'Open Location…',
+          accelerator: 'CommandOrControl+L',
+          click: () => handlers.focusAddress()
+        },
+        { type: 'separator' },
+        {
+          label: 'Close Tab',
+          accelerator: 'CommandOrControl+W',
+          click: () => handlers.closeTab()
+        },
+        { type: 'separator' },
+        {
+          label: 'Print…',
+          accelerator: 'CommandOrControl+P',
+          click: () => handlers.print()
         },
         { type: 'separator' },
         {
@@ -68,7 +104,26 @@ export function buildAppMenu(handlers: MenuHandlers): void {
         }
       ]
     },
-    { role: 'editMenu' },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'pasteAndMatchStyle' },
+        { role: 'delete' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'Find…',
+          accelerator: 'CommandOrControl+F',
+          click: () => handlers.find()
+        }
+      ]
+    },
     {
       label: 'View',
       submenu: [
@@ -109,8 +164,48 @@ export function buildAppMenu(handlers: MenuHandlers): void {
         { label: 'Import from Chrome…', click: () => handlers.importBookmarks() }
       ]
     },
+    {
+      label: 'Tab',
+      submenu: [
+        {
+          label: 'Show Next Tab',
+          accelerator: 'CommandOrControl+Shift+]',
+          click: () => handlers.nextTab()
+        },
+        {
+          label: 'Show Previous Tab',
+          accelerator: 'CommandOrControl+Shift+[',
+          click: () => handlers.prevTab()
+        },
+        // Chrome-style Ctrl-Tab aliases; hidden so the menu stays tidy.
+        {
+          label: 'Next Tab',
+          accelerator: 'Control+Tab',
+          visible: false,
+          acceleratorWorksWhenHidden: true,
+          click: () => handlers.nextTab()
+        },
+        {
+          label: 'Previous Tab',
+          accelerator: 'Control+Shift+Tab',
+          visible: false,
+          acceleratorWorksWhenHidden: true,
+          click: () => handlers.prevTab()
+        }
+      ]
+    },
     { label: 'Accounts', submenu: accountItems },
-    { role: 'windowMenu' }
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        // Cmd-W belongs to Close Tab; the window closes with Cmd-Shift-W.
+        { label: 'Close Window', accelerator: 'CommandOrControl+Shift+W', role: 'close' },
+        { type: 'separator' },
+        { role: 'front' }
+      ]
+    }
   ]
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))

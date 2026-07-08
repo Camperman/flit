@@ -39,6 +39,7 @@ export const APP_RAIL_WIDTH = 84
 export const TITLE_BAR_HEIGHT = 38
 export const TOP_BAR_HEIGHT = 44
 export const BOOKMARKS_BAR_HEIGHT = 36
+export const FIND_BAR_HEIGHT = 36
 // The page floats as a rounded card with a dark-gray chrome gutter around it.
 const CONTENT_INSET = 8
 const CONTENT_RADIUS = 10
@@ -119,11 +120,20 @@ interface WindowAccount {
   unreadByApp: Record<string, number>
 }
 
+/** A tab the user closed, kept so Cmd-Shift-T can bring it back. */
+interface ClosedTab {
+  accountId: string
+  url: string
+  originShortcutId?: string
+}
+
 /** All per-window view state for one BrowserWindow. */
 interface WindowState {
   win: BrowserWindow
   activeAccountId?: string
   overlayOpen: boolean
+  findOpen: boolean
+  recentlyClosed: ClosedTab[]
   perAccount: Map<string, WindowAccount>
 }
 
@@ -357,7 +367,13 @@ export class AccountManager implements ExtensionTabDelegate {
     // badges show and switching is instant). Additional windows are lazy —
     // they load a profile only when you first switch to it — to save memory.
     const eager = this.windows.size === 0
-    const ws: WindowState = { win, overlayOpen: false, perAccount: new Map() }
+    const ws: WindowState = {
+      win,
+      overlayOpen: false,
+      findOpen: false,
+      recentlyClosed: [],
+      perAccount: new Map()
+    }
     this.windows.set(win.id, ws)
 
     win.on('resize', () => this.layout(ws))
@@ -450,6 +466,16 @@ export class AccountManager implements ExtensionTabDelegate {
       void wc.executeJavaScript(NOTIFICATION_HOOK_SCRIPT, true).catch(() => {})
       this.extractAvatar(accountId, wc)
       setTimeout(() => this.extractAvatar(accountId, wc), 2000)
+    })
+
+    // Find-in-page results → the find bar's "3/17" counter.
+    wc.on('found-in-page', (_e, result) => {
+      if (isActiveTab() && !ws.win.isDestroyed()) {
+        ws.win.webContents.send('find:result', {
+          matches: result.matches,
+          activeMatchOrdinal: result.activeMatchOrdinal
+        })
+      }
     })
 
     // Clicking one of this tab's notifications switches to this account + tab.
@@ -549,6 +575,18 @@ export class AccountManager implements ExtensionTabDelegate {
         }
         items.push(
           { label: 'Copy Link', click: () => clipboard.writeText(link) },
+          { type: 'separator' }
+        )
+      }
+      if (params.misspelledWord) {
+        for (const suggestion of params.dictionarySuggestions.slice(0, 5)) {
+          items.push({ label: suggestion, click: () => wc.replaceMisspelling(suggestion) })
+        }
+        items.push(
+          {
+            label: 'Add to Dictionary',
+            click: () => wc.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+          },
           { type: 'separator' }
         )
       }
@@ -698,7 +736,14 @@ export class AccountManager implements ExtensionTabDelegate {
     const wa = this.accountState(ws, accountId)
     const index = wa.tabs.findIndex((t) => t.id === tabId)
     if (index === -1) return
-    const view = wa.tabs[index].view
+    const closing = wa.tabs[index]
+    ws.recentlyClosed.push({
+      accountId,
+      url: closing.currentUrl,
+      originShortcutId: closing.originShortcutId
+    })
+    if (ws.recentlyClosed.length > 25) ws.recentlyClosed.shift()
+    const view = closing.view
     if (view) this.destroyView(ws, view)
     wa.tabs.splice(index, 1)
     if (wa.activeTabId === tabId) {
@@ -723,6 +768,90 @@ export class AccountManager implements ExtensionTabDelegate {
       wa.activeTabId = tab.id
     }
     this.afterTabChange(ws, accountId)
+  }
+
+  // ---- menu-driven tab operations (act on the focused window) -----------
+
+  newTabInActive(win: BrowserWindow): void {
+    const ws = this.wsFor(win)
+    if (ws?.activeAccountId) this.newTab(win, ws.activeAccountId)
+  }
+
+  /** Cmd-W: close the active tab. The account keeps its last tab (accounts
+   *  are workspaces, not disposable windows) — closing the only tab no-ops. */
+  closeActiveTab(win: BrowserWindow): void {
+    const ws = this.wsFor(win)
+    if (!ws?.activeAccountId) return
+    const wa = ws.perAccount.get(ws.activeAccountId)
+    if (!wa?.activeTabId || wa.tabs.length <= 1) return
+    this.closeTab(win, ws.activeAccountId, wa.activeTabId)
+  }
+
+  reopenClosedTab(win: BrowserWindow): void {
+    const ws = this.wsFor(win)
+    if (!ws) return
+    // Skip entries whose account has since been removed.
+    let closed: ClosedTab | undefined
+    while ((closed = ws.recentlyClosed.pop())) {
+      if (this.accounts.has(closed.accountId)) break
+    }
+    if (!closed) return
+    const tab = this.openTab(ws, closed.accountId, closed.url, closed.originShortcutId)
+    this.accountState(ws, closed.accountId).activeTabId = tab.id
+    this.setActiveWs(ws, closed.accountId)
+    this.afterTabChange(ws, closed.accountId)
+  }
+
+  /** Ctrl-Tab / Cmd-Shift-]: cycle through the active account's tabs. */
+  cycleTab(win: BrowserWindow, delta: 1 | -1): void {
+    const ws = this.wsFor(win)
+    if (!ws?.activeAccountId) return
+    const wa = ws.perAccount.get(ws.activeAccountId)
+    if (!wa || wa.tabs.length < 2) return
+    const index = wa.tabs.findIndex((t) => t.id === wa.activeTabId)
+    const next = wa.tabs[(index + delta + wa.tabs.length) % wa.tabs.length]
+    this.activateTab(win, ws.activeAccountId, next.id)
+  }
+
+  printActive(win: BrowserWindow): void {
+    this.activeWc(win)?.print()
+  }
+
+  // ---- find in page ------------------------------------------------------
+
+  /** Cmd-F: reserve a chrome row for the find bar and tell the renderer. */
+  openFind(win: BrowserWindow): void {
+    const ws = this.wsFor(win)
+    if (!ws || ws.findOpen) {
+      // Already open → renderer refocuses its input.
+      if (ws && !ws.win.isDestroyed()) ws.win.webContents.send('find:open')
+      return
+    }
+    ws.findOpen = true
+    this.layout(ws)
+    if (!ws.win.isDestroyed()) ws.win.webContents.send('find:open')
+  }
+
+  findInPage(win: BrowserWindow, text: string, next: boolean, forward: boolean): void {
+    const wc = this.activeWc(win)
+    if (!wc) return
+    if (!text) {
+      wc.stopFindInPage('clearSelection')
+      return
+    }
+    // findNext=true marks a follow-up request (move selection) vs a new search.
+    wc.findInPage(text, { findNext: next, forward })
+  }
+
+  closeFind(win: BrowserWindow): void {
+    const ws = this.wsFor(win)
+    if (!ws || !ws.findOpen) return
+    ws.findOpen = false
+    this.activeWc(win)?.stopFindInPage('clearSelection')
+    this.layout(ws)
+    this.activeWc(win)?.focus()
+    // Main can dismiss find (e.g. account switch) — keep the renderer in sync.
+    if (!ws.win.isDestroyed()) ws.win.webContents.send('find:close')
   }
 
   /** Open a link sent to Glide by macOS (default-browser open-url). Lands as a
@@ -874,6 +1003,8 @@ export class AccountManager implements ExtensionTabDelegate {
 
   private setActiveWs(ws: WindowState, id: string): void {
     if (!this.accounts.has(id)) return
+    // Find state is per-page; leaving the account dismisses the find bar.
+    if (ws.findOpen && ws.activeAccountId !== id) this.closeFind(ws.win)
     this.ensureLoaded(ws, id)
     ws.activeAccountId = id
     this.refreshVisibility(ws)
@@ -1279,8 +1410,13 @@ export class AccountManager implements ExtensionTabDelegate {
     return SIDEBAR_WIDTH + (this.railLayout === 'left' ? APP_RAIL_WIDTH : 0)
   }
 
-  private topChrome(): number {
-    return TITLE_BAR_HEIGHT + TOP_BAR_HEIGHT + (this.bookmarksBar ? BOOKMARKS_BAR_HEIGHT : 0)
+  private topChrome(ws: WindowState): number {
+    return (
+      TITLE_BAR_HEIGHT +
+      TOP_BAR_HEIGHT +
+      (this.bookmarksBar ? BOOKMARKS_BAR_HEIGHT : 0) +
+      (ws.findOpen ? FIND_BAR_HEIGHT : 0)
+    )
   }
 
   private refreshVisibility(ws: WindowState): void {
@@ -1304,7 +1440,7 @@ export class AccountManager implements ExtensionTabDelegate {
     const tab = this.activeTab(ws)
     if (!tab || !tab.view) return
     const left = this.contentLeft()
-    const top = this.topChrome()
+    const top = this.topChrome(ws)
     const i = CONTENT_INSET
     tab.view.setBounds({
       x: left + i,

@@ -243,6 +243,18 @@ export interface GlideApi {
   onAccountsUpdated(cb: (accounts: AccountSummary[]) => void): () => void
   /** Fired when the user picks Glide → Preferences… in the menu (Cmd-,). */
   onOpenPreferences(cb: () => void): () => void
+  /** Cmd-F pressed: show the find bar (main already reserved its row). */
+  onFindOpen(cb: () => void): () => void
+  /** Match counts from the page, for the find bar's "3 / 17" readout. */
+  onFindResult(cb: (result: { matches: number; activeMatchOrdinal: number }) => void): () => void
+  /** Search (next=false starts a new query; next=true moves the selection). */
+  findInPage(text: string, next: boolean, forward: boolean): Promise<void>
+  /** Dismiss the find bar; main clears highlights and reclaims the row. */
+  stopFind(): Promise<void>
+  /** Main dismissed the find bar (e.g. account switch). */
+  onFindClose(cb: () => void): () => void
+  /** Cmd-L pressed: focus + select the address bar. */
+  onFocusAddress(cb: () => void): () => void
   /** Current preferences + resolved dark/light (defaults merged in). */
   getPrefs(): Promise<PrefsState>
   /** Patch preferences; main applies side effects and broadcasts. */

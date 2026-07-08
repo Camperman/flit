@@ -117,6 +117,15 @@ export function registerIpc(
     if (win) accounts.setOverlayOpen(win, open)
   })
 
+  ipcMain.handle('find:query', (e, text: string, next: boolean, forward: boolean) => {
+    const win = winOf(e)
+    if (win) accounts.findInPage(win, text, next, forward)
+  })
+  ipcMain.handle('find:stop', (e) => {
+    const win = winOf(e)
+    if (win) accounts.closeFind(win)
+  })
+
   // ---- global metadata / settings (broadcast to all windows) ----
   ipcMain.handle('accounts:list', () => accounts.summaries())
   ipcMain.handle('accounts:add', (_e, input: NewAccountInput) => {
