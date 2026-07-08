@@ -58,6 +58,11 @@ function seedPasswordsApp(): void {
 function installMenu(): void {
   buildAppMenu({
     newWindow: () => createWindow(),
+    // macOS shows its own "use Glide as your default browser?" confirmation.
+    setDefaultBrowser: () => {
+      app.setAsDefaultProtocolClient('http')
+      app.setAsDefaultProtocolClient('https')
+    },
     switchToIndex: (index) => {
       const win = BrowserWindow.getFocusedWindow()
       if (win) accounts?.setActiveByIndex(win, index)
@@ -123,6 +128,8 @@ function createWindow(): void {
   // The manager builds this window's account views once the page is ready.
   win.webContents.once('did-finish-load', () => {
     accounts?.registerWindow(win, state.activeAccountId)
+    // Links that arrived while the app was still launching.
+    for (const url of pendingUrls.splice(0)) accounts?.openUrlInActiveAccount(url)
   })
 }
 
@@ -136,6 +143,18 @@ if (!gotInstanceLock) {
 
 app.on('second-instance', () => {
   if (accounts) createWindow()
+})
+
+// Links sent to Glide by macOS (when Glide is the default browser, or
+// `open -a Glide <url>`). Can fire before ready/windows exist — queue those.
+const pendingUrls: string[] = []
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  if (accounts && BrowserWindow.getAllWindows().length > 0) {
+    accounts.openUrlInActiveAccount(url)
+  } else {
+    pendingUrls.push(url)
+  }
 })
 
 // Forward app-protocol links (Zoom, mailto, Teams, …) to the OS from any web

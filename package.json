@@ -1,6 +1,6 @@
 {
   "name": "glide",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Multi-account Google workspace browser for macOS",
   "private": true,
   "license": "GPL-3.0-only",
@@ -59,7 +59,21 @@
         "NSBluetoothAlwaysUsageDescription": "Glide uses Bluetooth for passkey (security key) sign-in.",
         "NSBluetoothPeripheralUsageDescription": "Glide uses Bluetooth for passkey (security key) sign-in.",
         "NSCameraUsageDescription": "Glide lets Google apps such as Meet use the camera.",
-        "NSMicrophoneUsageDescription": "Glide lets Google apps such as Meet use the microphone."
+        "NSMicrophoneUsageDescription": "Glide lets Google apps such as Meet use the microphone.",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "Web site URL",
+            "CFBundleTypeRole": "Viewer",
+            "CFBundleURLSchemes": ["http", "https"]
+          }
+        ],
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "HTML document",
+            "CFBundleTypeRole": "Viewer",
+            "LSItemContentTypes": ["public.html", "public.xhtml"]
+          }
+        ]
       }
     }
   },

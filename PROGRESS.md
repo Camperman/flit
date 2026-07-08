@@ -24,6 +24,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 16 | Notification click → switch to account | ✅ |
 | 17 | Chrome extensions (Electron 37, electron-chrome-extensions) | ✅ |
 | 18 | Friends-tier distribution (signing/notarization/DMG/GPL) | ✅ |
+| 19 | Default-browser registration + open-url (passkey-entitlement prereq) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -64,6 +65,23 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 19 notes — default-browser support (2026-07-08)
+Prerequisite for the `com.apple.developer.web-browser.public-key-credential`
+entitlement request (Apple's published criteria require the app to declare
+http/https in Info.plist and behave as a browser):
+- `CFBundleURLTypes` (http/https, Viewer) + `CFBundleDocumentTypes` (HTML) via
+  electron-builder `extendInfo`.
+- `app.on('open-url')` opens the link as a foreground tab in the focused
+  window's active account; URLs arriving during launch are queued and flushed
+  after the first window registers. http/https only.
+- **File → Set as Default Browser…** calls `setAsDefaultProtocolClient`
+  (macOS shows its own confirmation dialog).
+Before filing the entitlement request: confirm who holds the **Account
+Holder** role on Gotta Play Games LLC (Apple requires the request come from
+the Account Holder; Brandon shows as Admin in Xcode). Manual check: set the
+packaged Glide as default browser, click a link in another app → opens as a
+tab in the active account.
 
 ### Phase 18 notes — friends-tier distribution (2026-07-08, in progress)
 Scope approved as a REQUIREMENTS §2.2 exception. Code/config complete:

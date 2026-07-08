@@ -710,6 +710,25 @@ export class AccountManager implements ExtensionTabDelegate {
     this.afterTabChange(ws, accountId)
   }
 
+  /** Open a link sent to Glide by macOS (default-browser open-url). Lands as a
+   *  foreground tab in the focused window's active account. */
+  openUrlInActiveAccount(url: string): void {
+    if (!/^https?:\/\//i.test(url)) return
+    const ws =
+      this.allWindows().find((w) => !w.win.isDestroyed() && w.win.isFocused()) ??
+      this.allWindows()[0]
+    if (!ws) return
+    const accountId = ws.activeAccountId ?? this.order[0]
+    if (!accountId) return
+    const tab = this.openTab(ws, accountId, url)
+    this.accountState(ws, accountId).activeTabId = tab.id
+    this.setActiveWs(ws, accountId)
+    this.afterTabChange(ws, accountId)
+    if (ws.win.isMinimized()) ws.win.restore()
+    ws.win.show()
+    ws.win.focus()
+  }
+
   // ---- ExtensionTabDelegate (chrome.tabs.* reaching into our tab model) --
 
   /** Find which window/account/tab a WebContents belongs to. */

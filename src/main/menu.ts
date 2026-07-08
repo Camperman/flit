@@ -3,6 +3,7 @@ import type { AppRailLayout } from '../shared/types'
 
 export interface MenuHandlers {
   newWindow: () => void
+  setDefaultBrowser: () => void
   switchToIndex: (index: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -38,6 +39,11 @@ export function buildAppMenu(handlers: MenuHandlers): void {
           label: 'New Window',
           accelerator: 'CommandOrControl+N',
           click: () => handlers.newWindow()
+        },
+        { type: 'separator' },
+        {
+          label: 'Set as Default Browser…',
+          click: () => handlers.setDefaultBrowser()
         }
       ]
     },

@@ -19,6 +19,8 @@ so accounts never bleed into each other and never log each other out.
   (uBlock Origin Lite, etc.)
 - **Downloads**, multiple windows, Google Meet screen-sharing, Cmd-1…9 account
   switching
+- Can be your **default browser** (File → Set as Default Browser…) — links from
+  other apps open as a tab in your active account
 
 ## Install (macOS, Apple Silicon)
 
