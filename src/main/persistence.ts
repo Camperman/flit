@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import type { AppRailLayout, BookmarkNode, Shortcut } from '../shared/types'
+import type { AppRailLayout, BookmarkNode, Prefs, Shortcut } from '../shared/types'
 
 // Settings default to the per-user userData dir. On the author's Mac, two macOS
 // users share one config via /Users/Shared/Glide — that mode stays available but
@@ -42,6 +42,8 @@ export interface PersistedState {
   bookmarksBar?: boolean
   /** One-time flag: the Passwords app has been seeded into existing profiles. */
   seededPasswordsApp?: boolean
+  /** User preferences (partial; defaults merged at load). */
+  prefs?: Partial<Prefs>
 }
 
 const DEFAULT_ACCOUNTS: PersistedAccount[] = [

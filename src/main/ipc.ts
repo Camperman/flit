@@ -1,7 +1,15 @@
-import { BrowserWindow, ipcMain, session, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, app, dialog, ipcMain, session, type IpcMainInvokeEvent } from 'electron'
 import type { AccountManager } from './accounts'
 import type { DownloadManager } from './downloads'
-import type { AccountPatch, NewAccountInput, ShortcutInput, ShortcutPatch } from '../shared/types'
+import type { ExtensionManager } from './extensions'
+import type { PrefsManager } from './prefs'
+import type {
+  AccountPatch,
+  NewAccountInput,
+  Prefs,
+  ShortcutInput,
+  ShortcutPatch
+} from '../shared/types'
 
 /**
  * Wire the renderer ↔ main IPC. Window-scoped calls (active account, tabs, nav)
@@ -11,7 +19,9 @@ import type { AccountPatch, NewAccountInput, ShortcutInput, ShortcutPatch } from
 export function registerIpc(
   accounts: AccountManager,
   onNewWindow: () => void,
-  downloads: DownloadManager
+  downloads: DownloadManager,
+  prefs: PrefsManager,
+  extensions: ExtensionManager
 ): void {
   const winOf = (event: IpcMainInvokeEvent): BrowserWindow | null =>
     BrowserWindow.fromWebContents(event.sender)
@@ -147,6 +157,28 @@ export function registerIpc(
   ipcMain.handle('downloads:show', (_e, id: string) => downloads.show(id))
   ipcMain.handle('downloads:cancel', (_e, id: string) => downloads.cancel(id))
   ipcMain.handle('downloads:clear', () => downloads.clear())
+
+  // ---- preferences ----
+  ipcMain.handle('prefs:get', () => prefs.state())
+  ipcMain.handle('prefs:set', (_e, patch: Partial<Prefs>) => prefs.set(patch))
+  ipcMain.handle('prefs:choose-downloads-dir', async (e) => {
+    const win = winOf(e)
+    if (!win) return ''
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory', 'createDirectory'],
+      defaultPath: prefs.get().downloadsDir || app.getPath('downloads')
+    })
+    return result.canceled ? '' : (result.filePaths[0] ?? '')
+  })
+  ipcMain.handle('prefs:is-default-browser', () => app.isDefaultProtocolClient('http'))
+  ipcMain.handle('prefs:make-default-browser', () => {
+    app.setAsDefaultProtocolClient('http')
+    app.setAsDefaultProtocolClient('https')
+  })
+  ipcMain.handle('extensions:list', (_e, accountId: string) => extensions.list(accountId))
+  ipcMain.handle('extensions:uninstall', (_e, accountId: string, extensionId: string) =>
+    extensions.uninstall(accountId, extensionId)
+  )
 
   // ---- test-only (operate on session partitions directly) ----
   ipcMain.handle('__test:partitions', () => accounts.partitions())

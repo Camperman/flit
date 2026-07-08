@@ -22,6 +22,7 @@ import type {
   ChromeProfile,
   NavState,
   NewAccountInput,
+  SearchEngine,
   Shortcut,
   ShortcutInput,
   ShortcutPatch,
@@ -180,7 +181,13 @@ export function normalizeUrl(url: string): string {
   return `https://${trimmed}`
 }
 
-export function resolveQuery(input: string): string {
+const SEARCH_URLS: Record<SearchEngine, string> = {
+  google: 'https://www.google.com/search?q=',
+  duckduckgo: 'https://duckduckgo.com/?q=',
+  bing: 'https://www.bing.com/search?q='
+}
+
+export function resolveQuery(input: string, engine: SearchEngine = 'google'): string {
   const trimmed = input.trim()
   if (!trimmed) return ''
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed
@@ -190,7 +197,7 @@ export function resolveQuery(input: string): string {
       /^\d{1,3}(\.\d{1,3}){3}(:\d+)?(\/.*)?$/.test(trimmed) ||
       /^[^\s/.]+\.[^\s/.]+/.test(trimmed))
   if (looksLikeUrl) return `https://${trimmed}`
-  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`
+  return SEARCH_URLS[engine] + encodeURIComponent(trimmed)
 }
 
 export function parseUnread(title: string): number {
@@ -279,6 +286,8 @@ export class AccountManager implements ExtensionTabDelegate {
   private zoomFactor = 1
   private railLayout: AppRailLayout = 'left'
   private bookmarksBar = false
+  private newTabUrl = NEW_TAB_URL
+  private searchEngine: SearchEngine = 'google'
 
   constructor(
     onState?: () => void,
@@ -623,10 +632,16 @@ export class AccountManager implements ExtensionTabDelegate {
     }
   }
 
+  /** Browsing-related preferences pushed from the prefs manager. */
+  setBrowsingPrefs(prefs: { newTabUrl: string; searchEngine: SearchEngine }): void {
+    this.newTabUrl = normalizeUrl(prefs.newTabUrl) || NEW_TAB_URL
+    this.searchEngine = prefs.searchEngine
+  }
+
   newTab(win: BrowserWindow, accountId: string): void {
     const ws = this.wsFor(win)
     if (!ws) return
-    const tab = this.openTab(ws, accountId, NEW_TAB_URL)
+    const tab = this.openTab(ws, accountId, this.newTabUrl)
     this.accountState(ws, accountId).activeTabId = tab.id
     this.afterTabChange(ws, accountId)
   }
@@ -1033,7 +1048,7 @@ export class AccountManager implements ExtensionTabDelegate {
   }
 
   navigate(win: BrowserWindow, input: string): void {
-    const target = resolveQuery(input)
+    const target = resolveQuery(input, this.searchEngine)
     if (target) void this.activeWc(win)?.loadURL(target)
   }
 

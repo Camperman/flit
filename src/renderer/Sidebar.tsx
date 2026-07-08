@@ -7,6 +7,7 @@ interface SidebarProps {
   unread: Record<string, number>
   onSelect: (id: string) => void
   onAdd: () => void
+  onOpenPreferences: () => void
   onContextMenu: (id: string) => void
 }
 
@@ -18,6 +19,7 @@ export function Sidebar({
   unread,
   onSelect,
   onAdd,
+  onOpenPreferences,
   onContextMenu
 }: SidebarProps): JSX.Element {
   return (
@@ -68,6 +70,15 @@ export function Sidebar({
         onClick={onAdd}
       >
         +
+      </button>
+      <button
+        className="sidebar__prefs"
+        type="button"
+        title="Preferences (⌘,)"
+        data-testid="open-preferences"
+        onClick={onOpenPreferences}
+      >
+        ⚙
       </button>
     </nav>
   )

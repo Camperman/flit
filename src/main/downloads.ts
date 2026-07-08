@@ -26,6 +26,14 @@ function uniquePath(dir: string, filename: string): string {
 export class DownloadManager {
   private readonly items = new Map<string, DownloadItem>()
   private downloads: DownloadInfo[] = []
+  private directory = ''
+  private askWhereToSave = false
+
+  /** Preferences pushed from the prefs manager. */
+  configure(prefs: { downloadsDir: string; askWhereToSave: boolean }): void {
+    this.directory = prefs.downloadsDir
+    this.askWhereToSave = prefs.askWhereToSave
+  }
 
   /** Wire a session's downloads (called once per account partition). */
   attach(ses: Session, accountId: string): void {
@@ -33,12 +41,19 @@ export class DownloadManager {
   }
 
   private track(item: DownloadItem, accountId: string): void {
-    const savePath = uniquePath(app.getPath('downloads'), item.getFilename())
-    item.setSavePath(savePath)
+    let savePath = ''
+    if (this.askWhereToSave) {
+      // Leaving savePath unset makes Electron show the native save dialog;
+      // the chosen path shows up via item.getSavePath() once picked.
+      item.setSaveDialogOptions({ defaultPath: item.getFilename() })
+    } else {
+      savePath = uniquePath(this.directory || app.getPath('downloads'), item.getFilename())
+      item.setSavePath(savePath)
+    }
 
     const info: DownloadInfo = {
       id: randomUUID(),
-      filename: basename(savePath),
+      filename: savePath ? basename(savePath) : item.getFilename(),
       path: savePath,
       accountId,
       totalBytes: item.getTotalBytes(),
@@ -50,12 +65,21 @@ export class DownloadManager {
     this.downloads.unshift(info)
 
     item.on('updated', (_e, state) => {
+      // In ask-where-to-save mode the path is known only after the user picks.
+      if (!info.path && item.getSavePath()) {
+        info.path = item.getSavePath()
+        info.filename = basename(info.path)
+      }
       info.receivedBytes = item.getReceivedBytes()
       info.totalBytes = item.getTotalBytes()
       info.state = state === 'interrupted' ? 'interrupted' : item.isPaused() ? 'paused' : 'progressing'
       this.emit()
     })
     item.once('done', (_e, state) => {
+      if (!info.path && item.getSavePath()) {
+        info.path = item.getSavePath()
+        info.filename = basename(info.path)
+      }
       info.receivedBytes = item.getReceivedBytes()
       info.state = state === 'completed' ? 'completed' : state === 'cancelled' ? 'cancelled' : 'interrupted'
       this.items.delete(info.id)

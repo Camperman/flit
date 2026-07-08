@@ -4,6 +4,7 @@ import { join } from 'path'
 import { AccountManager, isExternalProtocol, type AccountConfig } from './accounts'
 import { DownloadManager } from './downloads'
 import { ExtensionManager } from './extensions'
+import { PrefsManager } from './prefs'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { loadState, saveState, type PersistedState } from './persistence'
@@ -19,6 +20,7 @@ if (process.env.GLIDE_USER_DATA_DIR) {
 }
 
 let accounts: AccountManager | undefined
+let prefs: PrefsManager | undefined
 let state: PersistedState = { version: 1, accounts: [] }
 let persistTimer: NodeJS.Timeout | undefined
 
@@ -35,7 +37,8 @@ function buildState(): PersistedState {
     zoomFactor: accounts?.getZoom() ?? state.zoomFactor,
     layout: accounts?.getLayout() ?? state.layout,
     bookmarksBar: accounts?.getBookmarksBarVisible() ?? state.bookmarksBar,
-    seededPasswordsApp: state.seededPasswordsApp
+    seededPasswordsApp: state.seededPasswordsApp,
+    prefs: prefs?.snapshot() ?? state.prefs
   }
 }
 
@@ -58,6 +61,8 @@ function seedPasswordsApp(): void {
 function installMenu(): void {
   buildAppMenu({
     newWindow: () => createWindow(),
+    openPreferences: () =>
+      BrowserWindow.getFocusedWindow()?.webContents.send('menu:preferences'),
     // macOS shows its own "use Glide as your default browser?" confirmation.
     setDefaultBrowser: () => {
       app.setAsDefaultProtocolClient('http')
@@ -104,7 +109,7 @@ function createWindow(): void {
     y: isFirst ? state.window?.y : undefined,
     title: 'Glide',
     show: false,
-    backgroundColor: '#202124',
+    backgroundColor: prefs?.windowBackground() ?? '#202124',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 14, y: 8 },
     webPreferences: {
@@ -178,7 +183,13 @@ app.whenReady().then(() => {
   const extensions = new ExtensionManager()
   accounts = new AccountManager(schedulePersist, downloads, extensions)
   extensions.setDelegate(accounts)
-  registerIpc(accounts, createWindow, downloads)
+  prefs = new PrefsManager(state.prefs)
+  prefs.start((p) => {
+    accounts?.setBrowsingPrefs(p)
+    downloads.configure(p)
+    schedulePersist()
+  })
+  registerIpc(accounts, createWindow, downloads, prefs, extensions)
 
   const configs: AccountConfig[] = [...state.accounts]
     .sort((a, b) => a.order - b.order)

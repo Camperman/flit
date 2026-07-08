@@ -8,6 +8,7 @@ import { ChromeImportDialog } from './ChromeImportDialog'
 import { AccountDialog, type DialogValues } from './AccountDialog'
 import { ShortcutDialog, type ShortcutValues } from './ShortcutDialog'
 import { Downloads } from './Downloads'
+import { PreferencesDialog } from './PreferencesDialog'
 import type {
   AccountSummary,
   AppInfo,
@@ -15,6 +16,7 @@ import type {
   BookmarkNode,
   DownloadInfo,
   NavState,
+  PrefsState,
   TabInfo
 } from '../shared/types'
 
@@ -48,6 +50,8 @@ export function App(): JSX.Element {
   const [importOpen, setImportOpen] = useState(false)
   const [downloads, setDownloads] = useState<DownloadInfo[]>([])
   const [downloadsOpen, setDownloadsOpen] = useState(false)
+  const [prefsState, setPrefsState] = useState<PrefsState | null>(null)
+  const [prefsOpen, setPrefsOpen] = useState(false)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
@@ -67,6 +71,9 @@ export function App(): JSX.Element {
     const offImport = window.glide.onImportBookmarks(() => setImportOpen(true))
     void window.glide.getDownloads().then(setDownloads)
     const offDownloads = window.glide.onDownloadsState(setDownloads)
+    void window.glide.getPrefs().then(setPrefsState)
+    const offPrefs = window.glide.onPrefsChanged(setPrefsState)
+    const offOpenPrefs = window.glide.onOpenPreferences(() => setPrefsOpen(true))
     const offActive = window.glide.onActiveChanged(setActiveId)
     const offNav = window.glide.onNavState(setNav)
     const offUnread = window.glide.onUnread(({ id, count }) =>
@@ -109,6 +116,8 @@ export function App(): JSX.Element {
       offBookmarks()
       offImport()
       offDownloads()
+      offPrefs()
+      offOpenPrefs()
       offEditAccount()
       offEditShortcut()
     }
@@ -134,8 +143,19 @@ export function App(): JSX.Element {
   // A native view paints above DOM, so hide the active web view while a modal
   // is open and restore it when the modal closes.
   useEffect(() => {
-    void window.glide.setOverlay(Boolean(dialog || shortcutDialog || importOpen || downloadsOpen))
-  }, [dialog, shortcutDialog, importOpen, downloadsOpen])
+    void window.glide.setOverlay(
+      Boolean(dialog || shortcutDialog || importOpen || downloadsOpen || prefsOpen)
+    )
+  }, [dialog, shortcutDialog, importOpen, downloadsOpen, prefsOpen])
+
+  // Theme: main owns resolution (nativeTheme + appearance pref) and pushes the
+  // resolved dark/light with every prefs broadcast — one source of truth.
+  useEffect(() => {
+    if (!prefsState) return
+    const root = document.documentElement
+    root.dataset.profile = prefsState.prefs.themeId
+    root.dataset.theme = prefsState.dark ? 'dark' : 'light'
+  }, [prefsState])
 
   const handleSelect = (id: string): void => {
     setActiveId(id)
@@ -246,6 +266,7 @@ export function App(): JSX.Element {
           unread={unread}
           onSelect={handleSelect}
           onAdd={openAdd}
+          onOpenPreferences={() => setPrefsOpen(true)}
           onContextMenu={(id) => void window.glide.showAccountMenu(id)}
         />
 
@@ -307,6 +328,16 @@ export function App(): JSX.Element {
           initial={shortcutDialog.initial}
           onSubmit={handleShortcutSubmit}
           onCancel={() => setShortcutDialog(null)}
+        />
+      )}
+
+      {prefsOpen && prefsState && (
+        <PreferencesDialog
+          prefs={prefsState.prefs}
+          dark={prefsState.dark}
+          accounts={accounts}
+          activeAccountId={activeId}
+          onClose={() => setPrefsOpen(false)}
         />
       )}
 

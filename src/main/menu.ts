@@ -3,6 +3,7 @@ import type { AppRailLayout } from '../shared/types'
 
 export interface MenuHandlers {
   newWindow: () => void
+  openPreferences: () => void
   setDefaultBrowser: () => void
   switchToIndex: (index: number) => void
   zoomIn: () => void
@@ -28,10 +29,30 @@ export function buildAppMenu(handlers: MenuHandlers): void {
     click: () => handlers.switchToIndex(i)
   }))
 
+  // Custom app menu: same as the stock appMenu role, plus Preferences… (Cmd-,).
+  const appMenu: MenuItemConstructorOptions = {
+    role: 'appMenu',
+    submenu: [
+      { role: 'about' },
+      { type: 'separator' },
+      {
+        label: 'Preferences…',
+        accelerator: 'Command+,',
+        click: () => handlers.openPreferences()
+      },
+      { type: 'separator' },
+      { role: 'services' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'unhide' },
+      { type: 'separator' },
+      { role: 'quit' }
+    ]
+  }
+
   const template: MenuItemConstructorOptions[] = [
-    ...(process.platform === 'darwin'
-      ? [{ role: 'appMenu' } as MenuItemConstructorOptions]
-      : []),
+    ...(process.platform === 'darwin' ? [appMenu] : []),
     {
       label: 'File',
       submenu: [

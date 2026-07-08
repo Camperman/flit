@@ -25,6 +25,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 17 | Chrome extensions (Electron 37, electron-chrome-extensions) | ✅ |
 | 18 | Friends-tier distribution (signing/notarization/DMG/GPL) | ✅ |
 | 19 | Default-browser registration + open-url (passkey-entitlement prereq) | ✅ |
+| 20 | Preferences window (themes, color profiles, extensions, downloads) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -65,6 +66,27 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 20 notes — Preferences (2026-07-08)
+Preferences window (⚙ at sidebar bottom, or Glide → Preferences… / Cmd-,),
+three sections:
+- **General** — Appearance **System/Light/Dark** (`nativeTheme.themeSource`;
+  main resolves and pushes `PrefsState { prefs, dark }` so renderers never
+  guess), six **color profiles** (Graphite default, Midnight, Forest, Ember,
+  Orchid, Ocean — each with full dark AND light palettes; registry in
+  `src/shared/themes.ts`, palettes as `[data-profile][data-theme]` CSS-var
+  blocks), launch at login, default-browser status/button, new-tab URL,
+  search engine (Google/DuckDuckGo/Bing).
+- **Extensions** — per-account list + **Uninstall** + "Open Chrome Web Store".
+- **Downloads** — folder picker + "ask where to save each file".
+The whole chrome was converted to semantic CSS vars (--border/--surface/
+--hover*/--modal-bg/…); window backgroundColor tracks the theme. Verified
+visually via scripted screenshots across profiles (Playwright pins
+prefers-color-scheme, which is why main pushes resolved dark — do not revert
+to renderer matchMedia). Note: appearance also flips `prefers-color-scheme`
+for Google pages (they follow it when their theme is "device default").
+Manual check: flip appearance + profiles in the packaged app; toggle launch
+at login; uninstall an extension; change the downloads folder.
 
 ### Phase 19 notes — default-browser support (2026-07-08)
 Prerequisite for the `com.apple.developer.web-browser.public-key-credential`

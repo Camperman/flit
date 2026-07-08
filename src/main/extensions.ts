@@ -1,8 +1,9 @@
 import { BrowserWindow, app, session, type Session, type WebContents } from 'electron'
 import { join } from 'path'
 import { ElectronChromeExtensions } from 'electron-chrome-extensions'
-import { installChromeWebStore } from 'electron-chrome-web-store'
+import { installChromeWebStore, uninstallExtension } from 'electron-chrome-web-store'
 import { partitionFor } from './accounts'
+import type { ExtensionInfo } from '../shared/types'
 
 /**
  * How the extension system reaches back into Glide's tab model. Implemented by
@@ -69,6 +70,24 @@ export class ExtensionManager {
 
     // Chrome Web Store installs + persistence + auto-update for this profile.
     void installChromeWebStore({
+      session: ses,
+      extensionsPath: join(app.getPath('userData'), 'Extensions', accountId)
+    })
+  }
+
+  /** Extensions installed in an account's partition (for Preferences). */
+  list(accountId: string): ExtensionInfo[] {
+    const ses = session.fromPartition(partitionFor(accountId))
+    return ses.extensions
+      .getAllExtensions()
+      .map((e) => ({ id: e.id, name: e.name, version: e.version }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /** Uninstall an extension from one account's partition. */
+  async uninstall(accountId: string, extensionId: string): Promise<void> {
+    const ses = session.fromPartition(partitionFor(accountId))
+    await uninstallExtension(extensionId, {
       session: ses,
       extensionsPath: join(app.getPath('userData'), 'Extensions', accountId)
     })

@@ -86,6 +86,38 @@ export interface ShortcutPatch {
   url?: string
 }
 
+/** Light/dark selection; 'system' follows macOS. */
+export type Appearance = 'system' | 'light' | 'dark'
+
+export type SearchEngine = 'google' | 'duckduckgo' | 'bing'
+
+/** User preferences (Preferences window). Persisted with app state. */
+export interface Prefs {
+  appearance: Appearance
+  /** Color profile id — see shared/themes.ts. */
+  themeId: string
+  launchAtLogin: boolean
+  newTabUrl: string
+  searchEngine: SearchEngine
+  /** '' = the OS default ~/Downloads. */
+  downloadsDir: string
+  askWhereToSave: boolean
+}
+
+/** Prefs plus the resolved appearance (main owns nativeTheme resolution). */
+export interface PrefsState {
+  prefs: Prefs
+  /** True when the effective appearance is dark (appearance + OS resolved). */
+  dark: boolean
+}
+
+/** A Chrome extension installed in one account's partition. */
+export interface ExtensionInfo {
+  id: string
+  name: string
+  version: string
+}
+
 /** One download, active or finished, as shown in the downloads panel. */
 export interface DownloadInfo {
   id: string
@@ -209,6 +241,23 @@ export interface GlideApi {
   onActiveChanged(cb: (id: string) => void): () => void
   /** Subscribe to the account list changing (add/edit/remove). Returns an unsubscribe fn. */
   onAccountsUpdated(cb: (accounts: AccountSummary[]) => void): () => void
+  /** Fired when the user picks Glide → Preferences… in the menu (Cmd-,). */
+  onOpenPreferences(cb: () => void): () => void
+  /** Current preferences + resolved dark/light (defaults merged in). */
+  getPrefs(): Promise<PrefsState>
+  /** Patch preferences; main applies side effects and broadcasts. */
+  setPrefs(patch: Partial<Prefs>): Promise<void>
+  /** Subscribe to preference/appearance changes. Returns an unsubscribe fn. */
+  onPrefsChanged(cb: (state: PrefsState) => void): () => void
+  /** Native folder picker for the downloads location ('' if cancelled). */
+  chooseDownloadsDir(): Promise<string>
+  /** Is Glide the macOS default browser right now? */
+  isDefaultBrowser(): Promise<boolean>
+  /** Ask macOS to make Glide the default browser (shows a system dialog). */
+  makeDefaultBrowser(): Promise<void>
+  /** Chrome extensions installed in an account's partition. */
+  listExtensions(accountId: string): Promise<ExtensionInfo[]>
+  uninstallExtension(accountId: string, extensionId: string): Promise<void>
   /** All downloads this session (active first, newest first). */
   getDownloads(): Promise<DownloadInfo[]>
   /** Subscribe to the download list changing. Returns an unsubscribe fn. */

@@ -8,6 +8,7 @@ import type {
   DownloadInfo,
   GlideApi,
   NavState,
+  PrefsState,
   Shortcut,
   TabsState
 } from '../shared/types'
@@ -130,6 +131,24 @@ const api: GlideApi = {
     ipcRenderer.on('menu:edit-shortcut', listener)
     return () => ipcRenderer.removeListener('menu:edit-shortcut', listener)
   },
+  getPrefs: () => ipcRenderer.invoke('prefs:get'),
+  setPrefs: (patch) => ipcRenderer.invoke('prefs:set', patch),
+  onPrefsChanged: (cb) => {
+    const listener = (_event: unknown, state: PrefsState): void => cb(state)
+    ipcRenderer.on('prefs:changed', listener)
+    return () => ipcRenderer.removeListener('prefs:changed', listener)
+  },
+  onOpenPreferences: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('menu:preferences', listener)
+    return () => ipcRenderer.removeListener('menu:preferences', listener)
+  },
+  chooseDownloadsDir: () => ipcRenderer.invoke('prefs:choose-downloads-dir'),
+  isDefaultBrowser: () => ipcRenderer.invoke('prefs:is-default-browser'),
+  makeDefaultBrowser: () => ipcRenderer.invoke('prefs:make-default-browser'),
+  listExtensions: (accountId) => ipcRenderer.invoke('extensions:list', accountId),
+  uninstallExtension: (accountId, extensionId) =>
+    ipcRenderer.invoke('extensions:uninstall', accountId, extensionId),
   getDownloads: () => ipcRenderer.invoke('downloads:list'),
   onDownloadsState: (cb) => {
     const listener = (_event: unknown, downloads: DownloadInfo[]): void => cb(downloads)
