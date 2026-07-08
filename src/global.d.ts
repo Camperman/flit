@@ -14,6 +14,9 @@ declare global {
       > & {
         partition?: string
         alignment?: string
+        /** React passes props to custom elements as literal attributes —
+         *  use `class`, not `className` (which becomes `classname="…"`). */
+        class?: string
       }
     }
   }

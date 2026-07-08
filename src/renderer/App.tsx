@@ -52,6 +52,7 @@ export function App(): JSX.Element {
   const [downloadsOpen, setDownloadsOpen] = useState(false)
   const [prefsState, setPrefsState] = useState<PrefsState | null>(null)
   const [prefsOpen, setPrefsOpen] = useState(false)
+  const [hasExtensions, setHasExtensions] = useState(false)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
@@ -138,7 +139,16 @@ export function App(): JSX.Element {
     })
     void window.glide.getTabs(activeId).then(setTabs)
     void window.glide.getBookmarks(activeId).then(setBookmarks)
+    void window.glide.listExtensions(activeId).then((list) => setHasExtensions(list.length > 0))
   }, [activeId])
+
+  // Prefs dialog can install/uninstall extensions — refresh on close.
+  useEffect(() => {
+    if (!prefsOpen && activeId) {
+      void window.glide.listExtensions(activeId).then((list) => setHasExtensions(list.length > 0))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefsOpen])
 
   // A native view paints above DOM, so hide the active web view while a modal
   // is open and restore it when the modal closes.
@@ -276,6 +286,7 @@ export function App(): JSX.Element {
           <TopBar
             nav={nav}
             partition={activeId ? `persist:account-${activeId}` : undefined}
+            showActions={hasExtensions}
             onBack={() => void window.glide.goBack()}
             onForward={() => void window.glide.goForward()}
             onReload={() => void window.glide.reload()}

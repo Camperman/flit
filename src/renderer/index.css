@@ -936,14 +936,20 @@ body {
   color: #fff;
 }
 
-/* Extension toolbar (browser-action-list custom element) */
+/* Extension toolbar (browser-action-list custom element). Sits on a subtle
+   omnibox-colored chip so extension icons (often dark artwork) stay visible
+   against dark chrome themes. */
 .topbar__actions {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   height: 30px;
+  padding: 0 3px;
+  border-radius: 15px;
+  background: var(--omnibox-bg);
   /* Color hints consumed by the element's internal styling. */
-  --browser-action-badge-outline: var(--panel-bg);
+  --browser-action-badge-outline: var(--omnibox-bg);
+  --browser-action-hover-bg: var(--hover-strong);
 }
 
 /* Muted-notifications indicator (bottom-right of the avatar, mirrors the

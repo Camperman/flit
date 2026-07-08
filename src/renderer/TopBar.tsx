@@ -5,6 +5,8 @@ interface TopBarProps {
   nav: NavState | null
   /** Active account's session partition — hosts the extension toolbar. */
   partition?: string
+  /** Render the extension toolbar chip (the account has extensions). */
+  showActions?: boolean
   onBack: () => void
   onForward: () => void
   onReload: () => void
@@ -18,6 +20,7 @@ interface TopBarProps {
 export function TopBar({
   nav,
   partition,
+  showActions,
   onBack,
   onForward,
   onReload,
@@ -75,8 +78,8 @@ export function TopBar({
           onChange={(e) => setValue(e.target.value)}
         />
       </form>
-      {partition && (
-        <browser-action-list className="topbar__actions" partition={partition} />
+      {partition && showActions && (
+        <browser-action-list class="topbar__actions" partition={partition} />
       )}
       {children}
     </div>
