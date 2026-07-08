@@ -23,7 +23,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 15 | Per-account notification mute | ✅ |
 | 16 | Notification click → switch to account | ✅ |
 | 17 | Chrome extensions (Electron 37, electron-chrome-extensions) | ✅ |
-| 18 | Friends-tier distribution (signing/notarization/DMG/GPL) | 🔧 (code done; needs cert + repo publish — see notes) |
+| 18 | Friends-tier distribution (signing/notarization/DMG/GPL) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -78,16 +78,18 @@ Scope approved as a REQUIREMENTS §2.2 exception. Code/config complete:
 - **GPL-3.0**: LICENSE + package.json license field + README (public repo
   satisfies the electron-chrome-extensions GPL obligation).
 
-**Remaining manual steps (Brandon):**
-1. Create a **Developer ID Application** certificate (Xcode → Settings →
-   Accounts → Manage Certificates → “+”, or developer.apple.com → Certificates)
-   so `security find-identity -v -p codesigning` lists it.
-2. Make an app-specific password at appleid.apple.com; find the Team ID at
-   developer.apple.com → Membership; export the three env vars; `npm run dist`.
-3. First-run check of the DMG on a Mac (or macOS account) without the shared
-   config: app opens without Gatekeeper complaints, per-user settings created.
-4. Publish the repo publicly on GitHub (account TBD) and attach the DMG to a
-   Release.
+**Completed 2026-07-08:**
+- Public repo: **https://github.com/Camperman/glide** (GPL-3.0).
+- Developer ID Application cert created (Gotta Play Games LLC / VZ44XQWQ84);
+  notarization credentials in keychain profile `glide`
+  (`APPLE_KEYCHAIN_PROFILE=glide` is set by `npm run dist`).
+- v0.1.0 DMG built: app signed (hardened runtime) + notarized + stapled;
+  Gatekeeper `accepted (Notarized Developer ID)`. DMG container additionally
+  signed + notarized + stapled; `dmg.sign` enabled for future builds.
+
+**Remaining manual check:** first run of the DMG on a Mac (or macOS account)
+without the shared config — app opens with no Gatekeeper friction and creates
+per-user settings.
 
 ### Phase 17 notes — Chrome extensions (2026-07-08)
 Built the "Tier 2" path scoped below. **Electron 34 → 37.10.3** (the version

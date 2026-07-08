@@ -40,9 +40,17 @@ npm run dist         # signed + notarized DMG (requires signing setup below)
 keychain and these environment variables for notarization:
 
 ```sh
-export APPLE_ID="you@example.com"
-export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"   # appleid.apple.com → App-Specific Passwords
-export APPLE_TEAM_ID="XXXXXXXXXX"                          # developer.apple.com → Membership
+# One-time: store notarization credentials in the keychain profile "glide"
+# (an app-specific password from appleid.apple.com; Team ID from the cert name).
+xcrun notarytool store-credentials glide --apple-id "you@example.com" --team-id "XXXXXXXXXX"
+```
+
+After `npm run dist`, optionally notarize + staple the DMG container itself
+(the app inside is already notarized; this just makes the DMG validate too):
+
+```sh
+xcrun notarytool submit dist/Glide-*.dmg --keychain-profile glide --wait
+xcrun stapler staple dist/Glide-*.dmg
 ```
 
 ## Notes & limitations

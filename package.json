@@ -41,6 +41,9 @@
     "directories": {
       "output": "dist"
     },
+    "dmg": {
+      "sign": true
+    },
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/glide-app-icon.icns",
