@@ -1,5 +1,6 @@
 import { BrowserWindow, ipcMain, session, type IpcMainInvokeEvent } from 'electron'
 import type { AccountManager } from './accounts'
+import type { DownloadManager } from './downloads'
 import type { AccountPatch, NewAccountInput, ShortcutInput, ShortcutPatch } from '../shared/types'
 
 /**
@@ -7,7 +8,11 @@ import type { AccountPatch, NewAccountInput, ShortcutInput, ShortcutPatch } from
  * resolve the sending BrowserWindow from the event so each window acts on its
  * own views. Metadata/settings calls are global and broadcast to all windows.
  */
-export function registerIpc(accounts: AccountManager, onNewWindow: () => void): void {
+export function registerIpc(
+  accounts: AccountManager,
+  onNewWindow: () => void,
+  downloads: DownloadManager
+): void {
   const winOf = (event: IpcMainInvokeEvent): BrowserWindow | null =>
     BrowserWindow.fromWebContents(event.sender)
 
@@ -135,6 +140,13 @@ export function registerIpc(accounts: AccountManager, onNewWindow: () => void): 
   ipcMain.handle('bookmarks:import', (_e, accountId: string, chromeDir: string) =>
     accounts.importChromeBookmarks(accountId, chromeDir)
   )
+
+  // ---- downloads (global list, shared across windows) ----
+  ipcMain.handle('downloads:list', () => downloads.list())
+  ipcMain.handle('downloads:open', (_e, id: string) => downloads.open(id))
+  ipcMain.handle('downloads:show', (_e, id: string) => downloads.show(id))
+  ipcMain.handle('downloads:cancel', (_e, id: string) => downloads.cancel(id))
+  ipcMain.handle('downloads:clear', () => downloads.clear())
 
   // ---- test-only (operate on session partitions directly) ----
   ipcMain.handle('__test:partitions', () => accounts.partitions())

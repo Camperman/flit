@@ -29,6 +29,7 @@ import type {
 } from '../shared/types'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { PersistedAccount } from './persistence'
+import type { DownloadManager } from './downloads'
 import { listChromeProfiles, readChromeBookmarkBar } from './chromeBookmarks'
 
 export const SIDEBAR_WIDTH = 64
@@ -245,7 +246,10 @@ export class AccountManager {
   private railLayout: AppRailLayout = 'left'
   private bookmarksBar = false
 
-  constructor(onState?: () => void) {
+  constructor(
+    onState?: () => void,
+    private readonly downloads?: DownloadManager
+  ) {
     this.onState = onState
     const timer = setInterval(() => this.discardIdle(), DISCARD_SWEEP_MS)
     timer.unref?.() // don't keep the process alive just for the sweep
@@ -259,6 +263,7 @@ export class AccountManager {
 
   private addMeta(config: AccountConfig): AccountMeta {
     const ses = session.fromPartition(partitionFor(config.id))
+    this.downloads?.attach(ses, config.id)
     ses.setPermissionRequestHandler((_wc, permission, callback) =>
       callback(GRANTED_PERMISSIONS.has(permission))
     )

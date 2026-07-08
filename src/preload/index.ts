@@ -4,6 +4,7 @@ import type {
   AppRailLayout,
   AppsState,
   BookmarksState,
+  DownloadInfo,
   GlideApi,
   NavState,
   Shortcut,
@@ -128,6 +129,16 @@ const api: GlideApi = {
     ipcRenderer.on('menu:edit-shortcut', listener)
     return () => ipcRenderer.removeListener('menu:edit-shortcut', listener)
   },
+  getDownloads: () => ipcRenderer.invoke('downloads:list'),
+  onDownloadsState: (cb) => {
+    const listener = (_event: unknown, downloads: DownloadInfo[]): void => cb(downloads)
+    ipcRenderer.on('downloads:state', listener)
+    return () => ipcRenderer.removeListener('downloads:state', listener)
+  },
+  openDownload: (id) => ipcRenderer.invoke('downloads:open', id),
+  showDownload: (id) => ipcRenderer.invoke('downloads:show', id),
+  cancelDownload: (id) => ipcRenderer.invoke('downloads:cancel', id),
+  clearDownloads: () => ipcRenderer.invoke('downloads:clear'),
   __test: {
     partitions: () => ipcRenderer.invoke('__test:partitions'),
     setCookie: (arg) => ipcRenderer.invoke('__test:set-cookie', arg),

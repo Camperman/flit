@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { randomUUID } from 'crypto'
 import { join } from 'path'
 import { AccountManager, isExternalProtocol, type AccountConfig } from './accounts'
+import { DownloadManager } from './downloads'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { loadState, saveState, type PersistedState } from './persistence'
@@ -152,8 +153,9 @@ app.whenReady().then(() => {
   state = loadState()
   seedPasswordsApp()
 
-  accounts = new AccountManager(schedulePersist)
-  registerIpc(accounts, createWindow)
+  const downloads = new DownloadManager()
+  accounts = new AccountManager(schedulePersist, downloads)
+  registerIpc(accounts, createWindow, downloads)
 
   const configs: AccountConfig[] = [...state.accounts]
     .sort((a, b) => a.order - b.order)

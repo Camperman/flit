@@ -83,6 +83,21 @@ export interface ShortcutPatch {
   url?: string
 }
 
+/** One download, active or finished, as shown in the downloads panel. */
+export interface DownloadInfo {
+  id: string
+  /** Display filename (basename of `path`). */
+  filename: string
+  /** Final save path on disk. */
+  path: string
+  accountId: string
+  /** 0 when the server didn't send a length. */
+  totalBytes: number
+  receivedBytes: number
+  state: 'progressing' | 'paused' | 'completed' | 'cancelled' | 'interrupted'
+  startedAt: number
+}
+
 export interface TestCookie {
   name: string
   value: string
@@ -191,6 +206,18 @@ export interface GlideApi {
   onActiveChanged(cb: (id: string) => void): () => void
   /** Subscribe to the account list changing (add/edit/remove). Returns an unsubscribe fn. */
   onAccountsUpdated(cb: (accounts: AccountSummary[]) => void): () => void
+  /** All downloads this session (active first, newest first). */
+  getDownloads(): Promise<DownloadInfo[]>
+  /** Subscribe to the download list changing. Returns an unsubscribe fn. */
+  onDownloadsState(cb: (downloads: DownloadInfo[]) => void): () => void
+  /** Open a completed download with its default app. */
+  openDownload(id: string): Promise<void>
+  /** Reveal a download in Finder. */
+  showDownload(id: string): Promise<void>
+  /** Cancel an in-progress download. */
+  cancelDownload(id: string): Promise<void>
+  /** Clear finished/cancelled downloads from the list. */
+  clearDownloads(): Promise<void>
   /** Test-only helpers used by tests/isolation.spec.ts to prove session isolation. */
   __test: {
     partitions(): Promise<Record<string, string>>

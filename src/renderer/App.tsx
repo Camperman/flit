@@ -7,11 +7,13 @@ import { BookmarksBar } from './BookmarksBar'
 import { ChromeImportDialog } from './ChromeImportDialog'
 import { AccountDialog, type DialogValues } from './AccountDialog'
 import { ShortcutDialog, type ShortcutValues } from './ShortcutDialog'
+import { Downloads } from './Downloads'
 import type {
   AccountSummary,
   AppInfo,
   AppRailLayout,
   BookmarkNode,
+  DownloadInfo,
   NavState,
   TabInfo
 } from '../shared/types'
@@ -44,6 +46,8 @@ export function App(): JSX.Element {
   const [bookmarks, setBookmarks] = useState<BookmarkNode[]>([])
   const [bookmarksBar, setBookmarksBar] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [downloads, setDownloads] = useState<DownloadInfo[]>([])
+  const [downloadsOpen, setDownloadsOpen] = useState(false)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
@@ -61,6 +65,8 @@ export function App(): JSX.Element {
       })
     )
     const offImport = window.glide.onImportBookmarks(() => setImportOpen(true))
+    void window.glide.getDownloads().then(setDownloads)
+    const offDownloads = window.glide.onDownloadsState(setDownloads)
     const offActive = window.glide.onActiveChanged(setActiveId)
     const offNav = window.glide.onNavState(setNav)
     const offUnread = window.glide.onUnread(({ id, count }) =>
@@ -102,6 +108,7 @@ export function App(): JSX.Element {
       offBmVisible()
       offBookmarks()
       offImport()
+      offDownloads()
       offEditAccount()
       offEditShortcut()
     }
@@ -127,8 +134,8 @@ export function App(): JSX.Element {
   // A native view paints above DOM, so hide the active web view while a modal
   // is open and restore it when the modal closes.
   useEffect(() => {
-    void window.glide.setOverlay(Boolean(dialog || shortcutDialog || importOpen))
-  }, [dialog, shortcutDialog, importOpen])
+    void window.glide.setOverlay(Boolean(dialog || shortcutDialog || importOpen || downloadsOpen))
+  }, [dialog, shortcutDialog, importOpen, downloadsOpen])
 
   const handleSelect = (id: string): void => {
     setActiveId(id)
@@ -251,7 +258,14 @@ export function App(): JSX.Element {
             onForward={() => void window.glide.goForward()}
             onReload={() => void window.glide.reload()}
             onNavigate={(url) => void window.glide.navigate(url)}
-          />
+          >
+            <Downloads
+              downloads={downloads}
+              open={downloadsOpen}
+              onToggle={() => setDownloadsOpen((v) => !v)}
+              onClose={() => setDownloadsOpen(false)}
+            />
+          </TopBar>
           {bookmarksBar && (
             <BookmarksBar
               bookmarks={bookmarks}

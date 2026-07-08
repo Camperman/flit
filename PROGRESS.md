@@ -19,12 +19,27 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 11 | General browser tabs (tab strip, + new tab, any URL) | ✅ |
 | 13 | App rail + favicons + per-app badges | ✅ |
 | 12 | Multiple windows (Cmd-N) | ✅ |
+| 14 | Download handling (save to ~/Downloads, top-bar panel) | ✅ |
 
 ## Next up
-**First complete cut (Phases 0–7) is done.** Remaining work is optional polish
-(Phase 8+ in REQUIREMENTS.md §5) — only build on request. Candidates: notification
-click-to-switch (see deferral note below), per-account mute/notification rules,
-remember scroll position, zoom, download handling, auto-fetched Google avatars.
+**First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
+2026-07-08: per-account notification mute (Phase 15), notification click-to-switch
+(Phase 16), Chrome extensions (Phase 17). Already shipped earlier without a phase
+entry: auto-fetched Google avatars, persisted global zoom. **Scroll-position
+restore was investigated and dropped**: views stay alive while the app runs (scroll
+only lost on the 30-min idle discard), and Google apps scroll inner containers, so
+a generic window-scroll restore wouldn't actually restore anything useful.
+
+### Phase 14 notes — downloads (2026-07-08)
+Chrome-style: every download saves straight to `~/Downloads` (name uniquified,
+no save dialog) via a per-partition `will-download` hook (`src/main/downloads.ts`).
+A ↓ button appears at the right of the top bar once a download exists this session
+(progress ring while active; dock icon shows aggregate progress; dock bounces on
+completion). Click → panel with per-item progress, Open, Show in Finder, Cancel,
+Clear. The panel uses the modal-overlay mechanism (web view hidden while open), so
+it is **not auto-opened** on download start — that would blank the page mid-browse.
+Manual check: download an attachment from Gmail; verify file lands in ~/Downloads,
+ring/panel show progress, Show in Finder works.
 
 ### Known limitation — sign-in
 **Passkey-over-Bluetooth ("hybrid"/caBLE) is not supported.** It depends on

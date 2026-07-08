@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { NavState } from '../shared/types'
 
 interface TopBarProps {
@@ -7,11 +7,20 @@ interface TopBarProps {
   onForward: () => void
   onReload: () => void
   onNavigate: (url: string) => void
+  /** Trailing controls after the address field (e.g. the downloads button). */
+  children?: ReactNode
 }
 
 // Slim browser chrome above the active account view: back / forward / reload
 // and an editable address field reflecting the active view's URL.
-export function TopBar({ nav, onBack, onForward, onReload, onNavigate }: TopBarProps): JSX.Element {
+export function TopBar({
+  nav,
+  onBack,
+  onForward,
+  onReload,
+  onNavigate,
+  children
+}: TopBarProps): JSX.Element {
   const [value, setValue] = useState(nav?.url ?? '')
 
   // Follow the active view's URL as it navigates / switches accounts or tabs.
@@ -63,6 +72,7 @@ export function TopBar({ nav, onBack, onForward, onReload, onNavigate }: TopBarP
           onChange={(e) => setValue(e.target.value)}
         />
       </form>
+      {children}
     </div>
   )
 }
