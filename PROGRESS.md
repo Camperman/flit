@@ -394,6 +394,22 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Release — ✅ v0.7.8: bundle ID com.bcamp.flit → com.gottaplaygames.flit.**
+  Switched before registering the App ID + submitting the passkeys entitlement
+  request (the grant attaches to the identifier, so this was the last cheap
+  moment; the LLC domain is the conventional reverse-DNS prefix and matches
+  the Developer ID signature). Single config change (`build.appId`); userData
+  (sessions/settings, keyed by app name), the Chromium safe-storage keychain
+  entry, and the update feed are all unaffected. **One-time per machine after
+  updating:** macOS treats the new bundle ID as a new app — TCC permissions
+  (camera/mic/screen-recording/notifications) re-prompt and default-browser
+  registration must be re-set (File → Set as Default Browser). Manual check:
+  confirm auto-update 0.7.7 → 0.7.8 completes (Squirrel.Mac validates the
+  update's own signature, so the ID change should carry — if it doesn't,
+  install the 0.7.8 DMG fresh once). Verified in the packaged app:
+  CFBundleIdentifier = com.gottaplaygames.flit, CFBundleURLTypes http/https
+  intact. guard + build + smoke (×2) + isolation pass. **Entitlement form
+  should reference com.gottaplaygames.flit.**
 - **Polish — ✅ Account presets: Google / Microsoft / Start empty.** New
   accounts (and the first-run starter) choose what they're seeded with. A
   "Start with" segmented control in both the Welcome dialog and Add Account

@@ -1,6 +1,6 @@
 {
   "name": "flit",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "Multi-account Google workspace browser for macOS",
   "private": true,
   "license": "GPL-3.0-only",
@@ -32,7 +32,7 @@
     "vite": "^5.4.0"
   },
   "build": {
-    "appId": "com.bcamp.flit",
+    "appId": "com.gottaplaygames.flit",
     "productName": "Flit",
     "files": [
       "out/**/*",
