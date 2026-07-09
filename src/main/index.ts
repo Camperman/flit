@@ -92,6 +92,10 @@ function installMenu(): void {
       const win = focused()
       if (win) accounts?.openFind(win)
     },
+    bookmarkPage: () => {
+      const win = focused()
+      if (win) accounts?.bookmarkActivePage(win)
+    },
     print: () => {
       const win = focused()
       if (win) accounts?.printActive(win)
@@ -239,7 +243,8 @@ app.whenReady().then(() => {
       shortcuts: a.shortcuts,
       avatarUrl: a.avatarUrl,
       bookmarks: a.bookmarks,
-      muted: a.muted
+      muted: a.muted,
+      tabs: a.tabs
     }))
   accounts.loadMetadata(configs)
   if (state.zoomFactor) accounts.setZoom(state.zoomFactor)

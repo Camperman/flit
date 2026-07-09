@@ -10,6 +10,13 @@ import type { AppRailLayout, BookmarkNode, Prefs, Shortcut } from '../shared/typ
 // world-writable shared dir. Logins/sessions are always per-user regardless.
 const SHARED_DIR = process.env.GLIDE_SHARED_DIR || '/Users/Shared/Glide'
 
+/** One restorable tab (views are rebuilt lazily on first activation). */
+export interface PersistedTab {
+  url: string
+  originShortcutId?: string
+  active?: boolean
+}
+
 export interface PersistedAccount {
   id: string
   label: string
@@ -23,6 +30,8 @@ export interface PersistedAccount {
   bookmarks?: BookmarkNode[]
   /** Notifications from this account are suppressed. */
   muted?: boolean
+  /** Open tabs at last quit (primary window), restored on launch. */
+  tabs?: PersistedTab[]
 }
 
 export interface WindowBounds {

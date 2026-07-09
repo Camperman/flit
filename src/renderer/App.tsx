@@ -33,6 +33,12 @@ interface ShortcutDialogState {
   initial: ShortcutValues
 }
 
+interface BookmarkDialogState {
+  accountId: string
+  bookmarkId: string
+  initial: ShortcutValues
+}
+
 const DEFAULT_HOME = 'https://mail.google.com'
 
 export function App(): JSX.Element {
@@ -56,6 +62,7 @@ export function App(): JSX.Element {
   const [hasExtensions, setHasExtensions] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const [targetUrl, setTargetUrl] = useState('')
+  const [bookmarkDialog, setBookmarkDialog] = useState<BookmarkDialogState | null>(null)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
@@ -107,6 +114,26 @@ export function App(): JSX.Element {
         current && next.some((a) => a.id === current) ? current : next[0]?.id
       )
     })
+    const offEditBookmark = window.glide.onEditBookmark(({ accountId, bookmarkId }) => {
+      void window.glide.getBookmarks(accountId).then((nodes) => {
+        const flat: Array<{ id: string; title: string; url: string }> = []
+        const walk = (list: typeof nodes): void => {
+          for (const n of list) {
+            if (n.type === 'link') flat.push(n)
+            else walk(n.children)
+          }
+        }
+        walk(nodes)
+        const link = flat.find((l) => l.id === bookmarkId)
+        if (link) {
+          setBookmarkDialog({
+            accountId,
+            bookmarkId,
+            initial: { label: link.title, url: link.url }
+          })
+        }
+      })
+    })
     const offEditAccount = window.glide.onEditAccount((id) => openEdit(id))
     const offEditShortcut = window.glide.onEditShortcut(({ shortcutId }) =>
       openEditShortcut(shortcutId)
@@ -128,6 +155,7 @@ export function App(): JSX.Element {
       offFindOpen()
       offFindClose()
       offTarget()
+      offEditBookmark()
       offEditAccount()
       offEditShortcut()
     }
@@ -163,9 +191,9 @@ export function App(): JSX.Element {
   // is open and restore it when the modal closes.
   useEffect(() => {
     void window.glide.setOverlay(
-      Boolean(dialog || shortcutDialog || importOpen || downloadsOpen || prefsOpen)
+      Boolean(dialog || shortcutDialog || bookmarkDialog || importOpen || downloadsOpen || prefsOpen)
     )
-  }, [dialog, shortcutDialog, importOpen, downloadsOpen, prefsOpen])
+  }, [dialog, shortcutDialog, bookmarkDialog, importOpen, downloadsOpen, prefsOpen])
 
   // Theme: main owns resolution (nativeTheme + appearance pref) and pushes the
   // resolved dark/light with every prefs broadcast — one source of truth.
@@ -332,6 +360,9 @@ export function App(): JSX.Element {
               onOpenOverflow={(ids) => {
                 if (activeId) void window.glide.openBookmarksOverflow(activeId, ids)
               }}
+              onContextMenu={(bookmarkId) => {
+                if (activeId) void window.glide.showBookmarkMenu(activeId, bookmarkId)
+              }}
             />
           )}
           <main className="content" data-testid="content">
@@ -360,6 +391,21 @@ export function App(): JSX.Element {
           initial={shortcutDialog.initial}
           onSubmit={handleShortcutSubmit}
           onCancel={() => setShortcutDialog(null)}
+        />
+      )}
+
+      {bookmarkDialog && (
+        <ShortcutDialog
+          mode="edit"
+          initial={bookmarkDialog.initial}
+          onSubmit={(values) => {
+            void window.glide.updateBookmark(bookmarkDialog.accountId, bookmarkDialog.bookmarkId, {
+              title: values.label,
+              url: values.url
+            })
+            setBookmarkDialog(null)
+          }}
+          onCancel={() => setBookmarkDialog(null)}
         />
       )}
 

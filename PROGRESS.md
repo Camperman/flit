@@ -30,6 +30,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 22 | History + omnibox autocomplete | ✅ |
 | 23 | Auto-update (electron-updater + GitHub Releases) | ✅ |
 | 24 | Polish: tab audio indicators + hover link readout | ✅ |
+| 25 | Tab restore, Cmd-D bookmarks, dock badge, richer context menu | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -70,6 +71,19 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 25 notes — daily-driver gaps (2026-07-08)
+- **Tab restore**: the primary window's open tabs (per account, incl. which
+  was active) persist and restore on launch — only the active tab gets a live
+  view; the rest materialize on first activation (same memory model as idle
+  discard). Gotcha fixed via test: windows unregister before the quit-time
+  persist, so tabs are stashed on the account metas at unregister.
+- **Cmd-D** bookmarks the current page to the bar (deduped by URL);
+  right-click a bookmark → Edit (dialog) / Remove. Works on imported trees.
+- **Dock badge**: total unread across accounts via app.setBadgeCount.
+- **Context menu**: images get Open in New Tab / Save (flows through the
+  downloads panel) / Copy; selected text gets "Search for …" honoring the
+  search-engine preference.
 
 ### Phase 24 notes — audio indicators + link readout (2026-07-08)
 - Tabs show 🔊 while audible (click to mute → 🔇; mute survives idle-discard

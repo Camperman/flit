@@ -75,6 +75,18 @@ const api: GlideApi = {
     ipcRenderer.invoke('bookmarks:open-folder', accountId, folderId),
   openBookmarksOverflow: (accountId, ids) =>
     ipcRenderer.invoke('bookmarks:open-overflow', accountId, ids),
+  showBookmarkMenu: (accountId, bookmarkId) =>
+    ipcRenderer.invoke('menu:bookmark', accountId, bookmarkId),
+  updateBookmark: (accountId, bookmarkId, patch) =>
+    ipcRenderer.invoke('bookmarks:update', accountId, bookmarkId, patch),
+  onEditBookmark: (cb) => {
+    const listener = (
+      _event: unknown,
+      update: { accountId: string; bookmarkId: string }
+    ): void => cb(update)
+    ipcRenderer.on('menu:edit-bookmark', listener)
+    return () => ipcRenderer.removeListener('menu:edit-bookmark', listener)
+  },
   getBookmarksBarVisible: () => ipcRenderer.invoke('bookmarks:bar-visible'),
   onBookmarksBarVisible: (cb) => {
     const listener = (_event: unknown, visible: boolean): void => cb(visible)

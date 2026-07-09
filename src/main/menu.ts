@@ -13,6 +13,7 @@ export interface MenuHandlers {
   prevTab: () => void
   focusAddress: () => void
   find: () => void
+  bookmarkPage: () => void
   print: () => void
   zoomIn: () => void
   zoomOut: () => void
@@ -153,6 +154,12 @@ export function buildAppMenu(handlers: MenuHandlers): void {
     {
       label: 'Bookmarks',
       submenu: [
+        {
+          label: 'Bookmark This Page',
+          accelerator: 'CommandOrControl+D',
+          click: () => handlers.bookmarkPage()
+        },
+        { type: 'separator' },
         {
           label: 'Show Bookmarks Bar',
           type: 'checkbox',

@@ -208,6 +208,15 @@ export interface GlideApi {
   openBookmarkFolder(accountId: string, folderId: string): Promise<void>
   /** Open a native popup menu for bookmark-bar items that overflow ("More" »). */
   openBookmarksOverflow(accountId: string, ids: string[]): Promise<void>
+  /** Right-click menu for a bookmarks-bar link (Edit / Remove). */
+  showBookmarkMenu(accountId: string, bookmarkId: string): Promise<void>
+  updateBookmark(
+    accountId: string,
+    bookmarkId: string,
+    patch: { title?: string; url?: string }
+  ): Promise<void>
+  /** Native "Edit" chosen for a bookmark. Returns an unsubscribe fn. */
+  onEditBookmark(cb: (update: { accountId: string; bookmarkId: string }) => void): () => void
   getBookmarksBarVisible(): Promise<boolean>
   onBookmarksBarVisible(cb: (visible: boolean) => void): () => void
   /** Chrome profiles available to import from. */

@@ -6,6 +6,7 @@ interface BookmarksBarProps {
   onOpen: (url: string) => void
   onOpenFolder: (folderId: string) => void
   onOpenOverflow: (ids: string[]) => void
+  onContextMenu: (bookmarkId: string) => void
 }
 
 const GAP = 2
@@ -19,7 +20,8 @@ export function BookmarksBar({
   bookmarks,
   onOpen,
   onOpenFolder,
-  onOpenOverflow
+  onOpenOverflow,
+  onContextMenu
 }: BookmarksBarProps): JSX.Element {
   const barRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
@@ -79,6 +81,10 @@ export function BookmarksBar({
         title={node.url}
         data-testid={`bm-${node.id}`}
         onClick={() => onOpen(node.url)}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          onContextMenu(node.id)
+        }}
       >
         <span className="bm__label">{node.title || node.url}</span>
       </button>

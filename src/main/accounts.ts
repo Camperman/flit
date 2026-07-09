@@ -3,6 +3,7 @@ import {
   Menu,
   WebContents,
   WebContentsView,
+  app,
   clipboard,
   desktopCapturer,
   session,
@@ -18,6 +19,7 @@ import type {
   AppInfo,
   AppRailLayout,
   BookmarkFolder,
+  BookmarkLink,
   BookmarkNode,
   ChromeProfile,
   NavState,
@@ -29,7 +31,7 @@ import type {
   TabInfo
 } from '../shared/types'
 import type { MenuItemConstructorOptions } from 'electron'
-import type { PersistedAccount } from './persistence'
+import type { PersistedAccount, PersistedTab } from './persistence'
 import type { DownloadManager } from './downloads'
 import type { ExtensionManager, ExtensionTabDelegate } from './extensions'
 import type { HistoryManager } from './history'
@@ -85,6 +87,7 @@ export interface AccountConfig {
   avatarUrl?: string
   bookmarks?: BookmarkNode[]
   muted?: boolean
+  tabs?: PersistedTab[]
 }
 
 /** Shared, persisted metadata for an account (not window-specific). */
@@ -99,6 +102,8 @@ interface AccountMeta {
   avatarUrl?: string
   /** Suppress notifications from this account (permission denied while set). */
   muted?: boolean
+  /** Tabs saved at last quit; consumed by ensureLoaded on restore. */
+  savedTabs?: PersistedTab[]
 }
 
 /** One open browser tab within an account, in a specific window. `view` is
@@ -271,6 +276,34 @@ function openInBrowser(app: string, url: string): void {
   execFile('open', ['-a', app, url], () => {})
 }
 
+function findLink(nodes: BookmarkNode[], id: string): BookmarkLink | undefined {
+  for (const node of nodes) {
+    if (node.type === 'link' && node.id === id) return node
+    if (node.type === 'folder') {
+      const nested = findLink(node.children, id)
+      if (nested) return nested
+    }
+  }
+  return undefined
+}
+
+function findLinkByUrl(nodes: BookmarkNode[], url: string): BookmarkLink | undefined {
+  for (const node of nodes) {
+    if (node.type === 'link' && node.url === url) return node
+    if (node.type === 'folder') {
+      const nested = findLinkByUrl(node.children, url)
+      if (nested) return nested
+    }
+  }
+  return undefined
+}
+
+function removeNode(nodes: BookmarkNode[], id: string): BookmarkNode[] {
+  return nodes
+    .filter((n) => n.id !== id)
+    .map((n) => (n.type === 'folder' ? { ...n, children: removeNode(n.children, id) } : n))
+}
+
 function findFolder(nodes: BookmarkNode[], id: string): BookmarkFolder | undefined {
   for (const node of nodes) {
     if (node.type === 'folder') {
@@ -356,7 +389,8 @@ export class AccountManager implements ExtensionTabDelegate {
         config.shortcuts && config.shortcuts.length > 0 ? config.shortcuts : defaultShortcuts(),
       bookmarks: config.bookmarks ?? [],
       avatarUrl: config.avatarUrl,
-      muted: config.muted
+      muted: config.muted,
+      savedTabs: config.tabs
     }
     this.accounts.set(meta.id, meta)
     if (!this.order.includes(meta.id)) this.order.push(meta.id)
@@ -394,6 +428,23 @@ export class AccountManager implements ExtensionTabDelegate {
   private unregisterWindow(winId: number): void {
     const ws = this.windows.get(winId)
     if (!ws) return
+    // The primary window's tabs are what restore on next launch. Windows can
+    // unregister before the quit-time persist runs, so stash them on the metas
+    // (snapshotAccounts falls back to savedTabs when no window is left).
+    if (this.allWindows()[0] === ws) {
+      for (const [accountId, wa] of ws.perAccount) {
+        const meta = this.accounts.get(accountId)
+        if (meta && wa.tabs.length > 0) {
+          meta.savedTabs = wa.tabs
+            .filter((t) => /^https?:\/\//i.test(t.currentUrl))
+            .map((t) => ({
+              url: t.currentUrl,
+              originShortcutId: t.originShortcutId,
+              active: t.id === wa.activeTabId || undefined
+            }))
+        }
+      }
+    }
     for (const wa of ws.perAccount.values()) {
       for (const tab of wa.tabs) if (tab.view) this.destroyView(ws, tab.view)
     }
@@ -419,12 +470,36 @@ export class AccountManager implements ExtensionTabDelegate {
     return wa
   }
 
-  /** Ensure this window has at least the account's initial tab loaded. */
+  /** Ensure this window has the account's tabs loaded: the tab set saved at
+   *  last quit when available (only the active one gets a live view — the
+   *  rest materialize on first activation), else a single last-URL tab. */
   private ensureLoaded(ws: WindowState, accountId: string): void {
     const meta = this.accounts.get(accountId)
     if (!meta) return
     const wa = this.accountState(ws, accountId)
     if (wa.tabs.length > 0) return
+
+    const saved = meta.savedTabs?.filter((t) => /^https?:\/\//i.test(t.url))
+    if (saved && saved.length > 0) {
+      for (const s of saved) {
+        wa.tabs.push({
+          id: randomUUID(),
+          currentUrl: s.url,
+          title: hostOf(s.url),
+          originShortcutId: s.originShortcutId,
+          lastActive: Date.now()
+        })
+      }
+      const activeIndex = Math.max(
+        0,
+        saved.findIndex((s) => s.active)
+      )
+      const active = wa.tabs[activeIndex]
+      wa.activeTabId = active.id
+      this.createView(ws, accountId, active)
+      return
+    }
+
     const restoreUrl = meta.lastUrl || meta.homeUrl
     const origin = meta.shortcuts.find((s) => hostOf(s.url) === hostOf(restoreUrl))?.id
     const tab = this.openTab(ws, accountId, restoreUrl, origin)
@@ -601,6 +676,17 @@ export class AccountManager implements ExtensionTabDelegate {
           { type: 'separator' }
         )
       }
+      if (params.mediaType === 'image' && params.srcURL) {
+        items.push(
+          {
+            label: 'Open Image in New Tab',
+            click: () => this.openLinkTab(ws, accountId, params.srcURL, false)
+          },
+          { label: 'Save Image', click: () => wc.downloadURL(params.srcURL) },
+          { label: 'Copy Image', click: () => wc.copyImageAt(params.x, params.y) },
+          { type: 'separator' }
+        )
+      }
       if (params.misspelledWord) {
         for (const suggestion of params.dictionarySuggestions.slice(0, 5)) {
           items.push({ label: suggestion, click: () => wc.replaceMisspelling(suggestion) })
@@ -616,7 +702,13 @@ export class AccountManager implements ExtensionTabDelegate {
       if (params.isEditable) {
         items.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' })
       } else if (params.selectionText) {
-        items.push({ role: 'copy' })
+        const selection = params.selectionText.trim()
+        const shown = selection.length > 30 ? `${selection.slice(0, 30)}…` : selection
+        items.push({ role: 'copy' }, {
+          label: `Search for “${shown}”`,
+          click: () =>
+            this.openLinkTab(ws, accountId, resolveQuery(selection, this.searchEngine), false)
+        })
       }
       if (items.length === 0) {
         items.push(
@@ -1154,6 +1246,58 @@ export class AccountManager implements ExtensionTabDelegate {
     )
   }
 
+  /** Cmd-D: add the active page to this account's bookmarks bar (deduped). */
+  bookmarkActivePage(win: BrowserWindow): void {
+    const ws = this.wsFor(win)
+    const wc = this.activeWc(win)
+    if (!ws?.activeAccountId || !wc) return
+    const meta = this.accounts.get(ws.activeAccountId)
+    if (!meta) return
+    const url = wc.getURL()
+    if (!/^https?:\/\//i.test(url)) return
+    if (findLinkByUrl(meta.bookmarks, url)) return // already bookmarked
+    meta.bookmarks.push({
+      type: 'link',
+      id: randomUUID(),
+      title: wc.getTitle() || hostOf(url),
+      url
+    })
+    this.broadcastBookmarks(ws.activeAccountId)
+    this.onState?.()
+  }
+
+  updateBookmark(accountId: string, bookmarkId: string, patch: { title?: string; url?: string }): void {
+    const meta = this.accounts.get(accountId)
+    const link = meta && findLink(meta.bookmarks, bookmarkId)
+    if (!link) return
+    if (patch.title !== undefined) link.title = patch.title.trim() || link.title
+    if (patch.url !== undefined) link.url = normalizeUrl(patch.url) || link.url
+    this.broadcastBookmarks(accountId)
+    this.onState?.()
+  }
+
+  removeBookmark(accountId: string, bookmarkId: string): void {
+    const meta = this.accounts.get(accountId)
+    if (!meta) return
+    meta.bookmarks = removeNode(meta.bookmarks, bookmarkId)
+    this.broadcastBookmarks(accountId)
+    this.onState?.()
+  }
+
+  /** Right-click on a bookmarks-bar link → Edit / Remove. */
+  popupBookmarkMenu(win: BrowserWindow, accountId: string, bookmarkId: string): void {
+    const meta = this.accounts.get(accountId)
+    if (!meta || !findLink(meta.bookmarks, bookmarkId)) return
+    Menu.buildFromTemplate([
+      {
+        label: 'Edit',
+        click: () => win.webContents.send('menu:edit-bookmark', { accountId, bookmarkId })
+      },
+      { type: 'separator' },
+      { label: 'Remove', click: () => this.removeBookmark(accountId, bookmarkId) }
+    ]).popup({ window: win })
+  }
+
   getChromeProfiles(): ChromeProfile[] {
     try {
       return listChromeProfiles()
@@ -1418,8 +1562,22 @@ export class AccountManager implements ExtensionTabDelegate {
   }
 
   snapshotAccounts(): PersistedAccount[] {
+    // Tabs from the primary (first) window; fall back to the not-yet-consumed
+    // saved set so a quick launch+quit doesn't wipe a saved session.
+    const primary = this.allWindows()[0]
     return this.order.map((id, index) => {
       const meta = this.accounts.get(id)!
+      const wa = primary?.perAccount.get(id)
+      const tabs: PersistedTab[] | undefined =
+        wa && wa.tabs.length > 0
+          ? wa.tabs
+              .filter((t) => /^https?:\/\//i.test(t.currentUrl))
+              .map((t) => ({
+                url: t.currentUrl,
+                originShortcutId: t.originShortcutId,
+                active: t.id === wa.activeTabId || undefined
+              }))
+          : meta.savedTabs
       return {
         id: meta.id,
         label: meta.label,
@@ -1430,7 +1588,8 @@ export class AccountManager implements ExtensionTabDelegate {
         shortcuts: meta.shortcuts,
         avatarUrl: meta.avatarUrl,
         bookmarks: meta.bookmarks,
-        muted: meta.muted
+        muted: meta.muted,
+        tabs
       }
     })
   }
@@ -1511,6 +1670,16 @@ export class AccountManager implements ExtensionTabDelegate {
     if (!ws.win.isDestroyed()) {
       ws.win.webContents.send('accounts:unread', { id: accountId, count: this.totalUnread(ws, accountId) })
     }
+    this.updateDockBadge()
+  }
+
+  /** Total unread across all accounts (primary window) → dock icon badge. */
+  private updateDockBadge(): void {
+    const primary = this.allWindows()[0]
+    if (!primary) return
+    let total = 0
+    for (const id of this.order) total += this.totalUnread(primary, id)
+    app.setBadgeCount(total)
   }
 
   // ---- broadcast metadata changes to every window -----------------------
