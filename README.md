@@ -5,10 +5,11 @@
 # Flit
 
 **Flit is a web browser for macOS**, built around running multiple isolated
-Google accounts side by side. Each account lives in its own permanently-signed-in
-session — like Slack's workspace switcher, but every item in the sidebar is a
-complete, fully isolated web session (Gmail, Calendar, Drive, Meet, and any
-other site you browse).
+accounts side by side — Google, Microsoft, Slack, or any site with a login.
+Each account lives in its own permanently-signed-in session — like Slack's
+workspace switcher, but every item in the sidebar is a complete, fully
+isolated web session (Gmail, Calendar, Drive, Meet, and any other site you
+browse).
 
 Flit renders pages with Chromium (via Electron), so any site works exactly as
 it does in Chrome.
@@ -49,8 +50,9 @@ account its own persistent, isolated session partition:
 - **Isolated accounts** — one click to switch; every account stays signed in
   forever; accounts never bleed into each other or log each other out
   (isolation is verified by an automated test on every build).
-- **Per-account app rail** — pin Gmail, Calendar, Drive, Docs, or any site as
-  an app; each keeps its own always-loaded tab with a favicon and unread badge.
+- **Per-account app rail** — pin any site as an app from a built-in catalog of
+  100 popular apps (Slack, Outlook, Notion, WhatsApp…) or any custom URL; each
+  keeps its own always-loaded tab with a favicon and unread badge.
 - **Unread badges & notifications** — native macOS notifications attributed to
   the right account, per-account mute, click a notification to jump there; the
   Dock badge shows total unread.
