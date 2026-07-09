@@ -235,6 +235,18 @@ export function App(): JSX.Element {
     root.dataset.theme = prefsState.dark ? 'dark' : 'light'
   }, [prefsState])
 
+  // Accent follows the active account's color (pref, default on) — a constant
+  // "which account am I in" signal across the chrome.
+  useEffect(() => {
+    const root = document.documentElement
+    const color = accounts.find((a) => a.id === activeId)?.color
+    if (prefsState?.prefs.accountAccent && color) {
+      root.style.setProperty('--accent', color)
+    } else {
+      root.style.removeProperty('--accent') // fall back to the profile's accent
+    }
+  }, [prefsState, accounts, activeId])
+
   const handleSelect = (id: string): void => {
     setActiveId(id)
     void window.glide.switchAccount(id)

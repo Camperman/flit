@@ -9,7 +9,8 @@ export const DEFAULT_PREFS: Prefs = {
   newTabUrl: 'https://www.google.com',
   searchEngine: 'google',
   downloadsDir: '',
-  askWhereToSave: false
+  askWhereToSave: false,
+  accountAccent: true
 }
 
 /**

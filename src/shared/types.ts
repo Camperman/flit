@@ -106,6 +106,8 @@ export interface Prefs {
   /** '' = the OS default ~/Downloads. */
   downloadsDir: string
   askWhereToSave: boolean
+  /** Chrome accent follows the active account's color. */
+  accountAccent: boolean
 }
 
 /** One browsing-history entry (Cmd-Y page + omnibox suggestions). */

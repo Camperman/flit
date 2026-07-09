@@ -133,6 +133,16 @@ export function PreferencesDialog({
               </div>
 
               <div className="prefs__row">
+                <label htmlFor="pref-acct-accent">Accent follows active account</label>
+                <input
+                  id="pref-acct-accent"
+                  type="checkbox"
+                  checked={prefs.accountAccent}
+                  onChange={(e) => patch({ accountAccent: e.target.checked })}
+                />
+              </div>
+
+              <div className="prefs__row">
                 <label htmlFor="pref-login">Launch Glide at login</label>
                 <input
                   id="pref-login"
