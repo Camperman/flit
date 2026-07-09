@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/icon-256.png" width="128" alt="Flit app icon">
+</p>
+
 # Flit
 
 **Flit is a web browser for macOS**, built around running multiple isolated

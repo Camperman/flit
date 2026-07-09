@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Flit — a web browser for macOS</title>
 <meta name="description" content="Flit is a web browser for macOS built around running multiple isolated Google accounts side by side. Free and open source (GPL-3.0).">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+<link rel="icon" type="image/png" sizes="256x256" href="assets/icon-256.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta property="og:title" content="Flit — a web browser for macOS">
+<meta property="og:description" content="A web browser for macOS with an isolated, always-signed-in session for every account.">
+<meta property="og:image" content="https://camperman.github.io/flit/assets/hero.png">
+<meta property="og:url" content="https://camperman.github.io/flit/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --bg: #16181d;
@@ -34,6 +43,15 @@
     text-transform: uppercase;
     color: var(--accent);
     margin-bottom: 20px;
+  }
+  /* macOS-style app-icon tile: squircle-ish corners + soft lift. */
+  .app-icon {
+    display: block;
+    width: 128px;
+    height: 128px;
+    margin: 0 auto 22px;
+    border-radius: 22.5%;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .45);
   }
   h1 { font-size: clamp(32px, 6vw, 52px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
   h1 .em { color: var(--accent); }
@@ -116,6 +134,7 @@
 <body>
 
 <header class="wrap">
+  <img class="app-icon" src="assets/icon-256.png" alt="Flit app icon" width="256" height="256">
   <span class="logo">Flit</span>
   <h1>A web browser for macOS,<br>with a session for <span class="em">every account</span>.</h1>
   <p class="sub">
