@@ -3,6 +3,41 @@ import { autoUpdater } from 'electron-updater'
 
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
 
+/** Menu / Preferences "Check for Updates…": same updater, but with answers —
+ *  up-to-date, downloading, or the error the silent path swallows. */
+export async function checkForUpdatesInteractive(): Promise<void> {
+  if (!app.isPackaged) {
+    await dialog.showMessageBox({
+      type: 'info',
+      message: 'Updates are available only in the installed app',
+      detail: `This is a development build (v${app.getVersion()}).`
+    })
+    return
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    if (result?.isUpdateAvailable) {
+      await dialog.showMessageBox({
+        type: 'info',
+        message: `Flit ${result.updateInfo.version} is available`,
+        detail: 'Downloading in the background — you’ll be prompted to restart when it’s ready.'
+      })
+    } else {
+      await dialog.showMessageBox({
+        type: 'info',
+        message: 'You’re up to date',
+        detail: `Flit ${app.getVersion()} is the latest version.`
+      })
+    }
+  } catch (error) {
+    await dialog.showMessageBox({
+      type: 'warning',
+      message: 'Couldn’t check for updates',
+      detail: `${error instanceof Error ? error.message : error}`
+    })
+  }
+}
+
 /**
  * Auto-update from GitHub Releases (Camperman/flit, public — no token
  * needed to download). Checks shortly after launch and every few hours;

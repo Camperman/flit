@@ -8,7 +8,7 @@ import { ExtensionManager } from './extensions'
 import { HistoryManager } from './history'
 import { OmniboxManager } from './omnibox'
 import { PrefsManager } from './prefs'
-import { startAutoUpdate } from './updater'
+import { checkForUpdatesInteractive, startAutoUpdate } from './updater'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { loadState, saveState, type PersistedState } from './persistence'
@@ -102,6 +102,7 @@ function installMenu(): void {
       if (win) accounts?.createIncognito(win)
     },
     openPreferences: () => focused()?.webContents.send('menu:preferences'),
+    checkForUpdates: () => void checkForUpdatesInteractive(),
     newTab: () => {
       const win = focused()
       if (win) accounts?.newTabInActive(win)
@@ -313,6 +314,11 @@ app.whenReady().then(() => {
   if (state.layout) accounts.setLayout(state.layout)
   if (state.bookmarksBar) accounts.setBookmarksBarVisible(true)
 
+  app.setAboutPanelOptions({
+    applicationName: 'Flit',
+    applicationVersion: app.getVersion(),
+    copyright: '© 2026 Brandon Camp · GPL-3.0'
+  })
   installMenu()
   createWindow()
   startAutoUpdate()

@@ -45,11 +45,13 @@ export function PreferencesDialog({
   const [extAccount, setExtAccount] = useState(activeAccountId ?? accounts[0]?.id)
   const [extensions, setExtensions] = useState<ExtensionInfo[]>([])
   const [newTabDraft, setNewTabDraft] = useState(prefs.newTabUrl)
+  const [version, setVersion] = useState('')
 
   const patch = (p: Partial<Prefs>): void => void window.flit.setPrefs(p)
 
   useEffect(() => {
     void window.flit.isDefaultBrowser().then(setIsDefault)
+    void window.flit.getAppVersion().then(setVersion)
   }, [])
 
   useEffect(() => {
@@ -194,6 +196,19 @@ export function PreferencesDialog({
                   onChange={(e) => setNewTabDraft(e.target.value)}
                   onBlur={() => newTabDraft.trim() && patch({ newTabUrl: newTabDraft.trim() })}
                 />
+              </div>
+
+              <div className="prefs__row">
+                <label>
+                  Flit {version && `v${version}`}
+                </label>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void window.flit.checkForUpdates()}
+                >
+                  Check for Updates…
+                </button>
               </div>
 
               <div className="prefs__row">

@@ -17,6 +17,8 @@ import type {
 // state — it sends intents to main and renders state pushed back.
 const api: FlitApi = {
   newWindow: () => ipcRenderer.invoke('window:new'),
+  getAppVersion: () => ipcRenderer.invoke('app:version'),
+  checkForUpdates: () => ipcRenderer.invoke('app:check-updates'),
   isFirstRun: () => ipcRenderer.invoke('app:first-run'),
   completeFirstRun: () => ipcRenderer.invoke('app:first-run-done'),
   listAccounts: () => ipcRenderer.invoke('accounts:list'),

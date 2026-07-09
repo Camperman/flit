@@ -41,6 +41,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 33 | Pin tab to apps + account/app cycling shortcuts | ✅ |
 | 34 | Rename: Glide → Flit (app, bundle ID, repo, data migration) | ✅ |
 | 35 | Security hardening + size trim + Chrome-like dark contrast | ✅ |
+| 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -81,6 +82,15 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 36 notes — version + update check (2026-07-08)
+Three surfaces: Flit → About (enriched panel), Flit → **Check for
+Updates…**, and Preferences → General footer ("Flit v0.7.5" + button).
+Interactive check dialogs: up-to-date / downloading-in-background / the
+error the silent path swallows; dev builds explain themselves. **Release
+ritual update:** `gh release create` with 100 MB assets flakes on this
+network — create with small assets, then `gh release upload` the dmg/zip,
+then VERIFY (view --json isDraft,assets) before calling it shipped.
 
 ### Phase 35 notes — hardening + dark contrast (2026-07-08)
 Security review outcomes (foundations were already sound — isolation tested

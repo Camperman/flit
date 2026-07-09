@@ -5,6 +5,7 @@ export interface MenuHandlers {
   newWindow: () => void
   newIncognito: () => void
   openPreferences: () => void
+  checkForUpdates: () => void
   setDefaultBrowser: () => void
   switchToIndex: (index: number) => void
   newTab: () => void
@@ -50,6 +51,10 @@ export function buildAppMenu(handlers: MenuHandlers): void {
     role: 'appMenu',
     submenu: [
       { role: 'about' },
+      {
+        label: 'Check for Updates…',
+        click: () => handlers.checkForUpdates()
+      },
       { type: 'separator' },
       {
         label: 'Preferences…',

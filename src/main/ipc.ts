@@ -5,6 +5,7 @@ import type { ExtensionManager } from './extensions'
 import type { HistoryManager } from './history'
 import type { OmniboxManager } from './omnibox'
 import type { PrefsManager } from './prefs'
+import { checkForUpdatesInteractive } from './updater'
 import type {
   AccountPatch,
   NewAccountInput,
@@ -202,6 +203,10 @@ export function registerIpc(
   ipcMain.handle('downloads:show', (_e, id: string) => downloads.show(id))
   ipcMain.handle('downloads:cancel', (_e, id: string) => downloads.cancel(id))
   ipcMain.handle('downloads:clear', () => downloads.clear())
+
+  // ---- app info / updates ----
+  ipcMain.handle('app:version', () => app.getVersion())
+  ipcMain.handle('app:check-updates', () => checkForUpdatesInteractive())
 
   // ---- first-run onboarding ----
   ipcMain.handle('app:first-run', () => firstRun.get())

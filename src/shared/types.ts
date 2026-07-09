@@ -187,6 +187,10 @@ export interface TabsState {
 export interface FlitApi {
   /** Open a new app window (Cmd-N). */
   newWindow(): Promise<void>
+  /** App version string (e.g. "0.7.5"). */
+  getAppVersion(): Promise<string>
+  /** Interactive update check — dialogs for up-to-date / downloading / error. */
+  checkForUpdates(): Promise<void>
   /** Fresh install? Drives the one-time welcome flow. */
   isFirstRun(): Promise<boolean>
   /** Welcome flow finished — never show it again. */
