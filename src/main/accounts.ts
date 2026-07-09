@@ -689,6 +689,16 @@ export class AccountManager implements ExtensionTabDelegate {
       void wc.executeJavaScript(NOTIFICATION_HOOK_SCRIPT, true).catch(() => {})
       this.extractAvatar(accountId, wc)
       setTimeout(() => this.extractAvatar(accountId, wc), 2000)
+      // A blank new tab's home page (e.g. Google) autofocuses its own search
+      // box, which steals keyboard focus from the address bar. Reclaim it for
+      // the chrome so the cursor lands in the omnibox (Chrome-style). Retry
+      // once — some pages focus a tick after load.
+      if (tab.blank && isActiveTab()) {
+        this.focusChrome(ws)
+        setTimeout(() => {
+          if (tab.blank && isActiveTab()) this.focusChrome(ws)
+        }, 300)
+      }
     })
 
     // Audio playing/stopped → speaker indicators in the tab strip + app rail.
@@ -1938,6 +1948,14 @@ export class AccountManager implements ExtensionTabDelegate {
 
   private emitNav(ws: WindowState): void {
     if (!ws.win.isDestroyed()) ws.win.webContents.send('nav:state', this.getActiveNavState(ws.win))
+  }
+
+  /** Pull keyboard focus back to the chrome UI and put the cursor in the
+   *  address bar (used to beat a blank new tab's page autofocus). */
+  private focusChrome(ws: WindowState): void {
+    if (ws.win.isDestroyed()) return
+    ws.win.webContents.focus()
+    ws.win.webContents.send('menu:focus-address')
   }
 
   private emitTabs(ws: WindowState, accountId: string): void {

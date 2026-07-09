@@ -402,8 +402,14 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   new-tab home via `isNewTabHome` = same origin+path, so it survives Google's
   homepage redirects but clears on the first real navigation like `/search`).
   `NavState.blank` carries it to the renderer; `TopBar` shows an empty field +
-  focuses the input while blank. guard + build + smoke (×2) + isolation pass;
-  verified by script (new tab → address value `""`, focused `true`).
+  focuses the input while blank. **Native focus reclaim:** the page (google.com)
+  autofocuses its own search box on load, stealing keyboard focus from the DOM
+  address bar (a sibling `WebContentsView` wins over a renderer `.focus()`). So on
+  a blank tab's `did-finish-load` main calls `focusChrome` — `win.webContents.focus()`
+  + a `menu:focus-address` push — with one 300 ms retry for late autofocus.
+  guard + build + smoke (×2) + isolation pass; verified by script forcing the
+  window key: after load the **chrome UI webContents holds focus** (google view
+  `focused:false`) and the address input is `activeElement`, field empty.
 - **Polish — ✅ Drag-reorder accounts + unified sidebar layout.** Two tweaks:
   (1) **Account avatars are now draggable** to reorder the sidebar — mirrors the
   existing app/tab reorder pattern (local order state in `Sidebar.tsx`, commit on
