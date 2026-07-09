@@ -75,7 +75,12 @@ const GRANTED_PERMISSIONS = new Set([
   'clipboard-read',
   'clipboard-sanitized-write',
   'fullscreen',
-  'pointerLock'
+  'pointerLock',
+  // Gmail sends mail via the Background Sync API (Send registers a sync so the
+  // message goes out reliably). Denying it fails sends with "Message could not
+  // be sent. Check your network and try again." Chrome grants it by default;
+  // it's low-risk (deferred same-origin requests), so grant it app-wide.
+  'background-sync'
 ])
 
 // Camera/mic/clipboard-read are auto-granted ONLY to these origins. macOS TCC

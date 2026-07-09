@@ -394,6 +394,17 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Fix — ✅ Gmail sending ("Message could not be sent. Check your network").**
+  Gmail sends mail via the **Background Sync API** (Send registers a sync so the
+  message goes out reliably). The Phase 35 deny-by-default permission hardening
+  didn't list `background-sync` in `GRANTED_PERMISSIONS`, so the
+  permission-check handler denied it and every send failed with that error.
+  Chrome grants `background-sync` by default and it's low-risk (deferred
+  same-origin requests), so added it to the allowlist (non-sensitive → granted
+  app-wide). guard + build + smoke (×2) + isolation pass; verified in a real
+  google.com view that `navigator.permissions.query({name:'background-sync'})`
+  now reports `granted` (was denied). Regression from v0.7.6/Phase 35 — worth a
+  patch release.
 - **Polish — ✅ New tab lands the cursor in an empty address bar (Chrome-style).**
   Opening a tab (⌘T / +) still loads the new-tab home page (google.com) in the
   view, but the address bar is now **empty + focused** so you can type any
