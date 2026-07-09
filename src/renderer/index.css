@@ -575,8 +575,8 @@ body {
   position: relative;
   width: 32px;
   height: 32px;
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: 14px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -587,9 +587,19 @@ body {
 }
 
 .apprail__icon img {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+/* Letter fallback (favicon not captured yet) keeps a subtle chip. */
+.apprail__icon:not(:has(img)) {
+  background: var(--surface);
+}
+
+/* The lighter backing marks the ACTIVE app only. */
+.apprail__item--active .apprail__icon {
+  background: var(--surface);
 }
 
 .apprail__badge {
@@ -666,14 +676,14 @@ body {
   height: 30px;
   margin-bottom: 4px;
   padding: 0 6px;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .apprail--top .apprail__item--active {
   height: 100%;
   margin-bottom: 0;
   padding: 0 8px;
-  border-radius: 10px 10px 0 0;
+  border-radius: 14px 14px 0 0;
   background: var(--panel-bg);
   box-shadow: none;
 }
