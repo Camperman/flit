@@ -6,26 +6,26 @@
 --------------------------------------------------------------------------- */
 :root {
   --chrome-black: #0b0b0d;
-  --panel-bg: #202124;
+  --panel-bg: #26282d;
   /* Slightly darker strip behind tabs so the active tab (panel color) stands
      out and connects down into the toolbar/content. */
-  --tabstrip-bg: #17181b;
-  --omnibox-bg: #2b2c2f;
+  --tabstrip-bg: #141518;
+  --omnibox-bg: #35373d;
   --hairline: #000000;
   --hairline-soft: rgba(255, 255, 255, 0.05);
-  --sidebar-bg: #202124;
-  --content-bg: #202124;
+  --sidebar-bg: #26282d;
+  --content-bg: #1a1b1e;
   --text: #e6e8ec;
   --muted: #9aa0aa;
   --accent: #4c8bf5;
-  --border: #3a3e47;
-  --surface: #34363b;
+  --border: #45484f;
+  --surface: #3c3f45;
   --hover: rgba(255, 255, 255, 0.08);
   --hover-soft: rgba(255, 255, 255, 0.06);
   --hover-strong: rgba(255, 255, 255, 0.13);
-  --modal-bg: #23262d;
-  --menu-bg: #2a2d34;
-  --input-bg: #1b1d22;
+  --modal-bg: #2b2d33;
+  --menu-bg: #33363c;
+  --input-bg: #1f2125;
 }
 
 :root[data-theme='light'] {
@@ -53,19 +53,19 @@
 /* -- Midnight: deep blue-black, indigo accent ----------------------------- */
 :root[data-profile='midnight'] {
   --chrome-black: #05070d;
-  --panel-bg: #10141f;
-  --tabstrip-bg: #0a0e17;
-  --omnibox-bg: #1a2030;
-  --sidebar-bg: #10141f;
-  --content-bg: #10141f;
+  --panel-bg: #171d2e;
+  --tabstrip-bg: #080b13;
+  --omnibox-bg: #242c46;
+  --sidebar-bg: #171d2e;
+  --content-bg: #0e1119;
   --text: #e3e7f3;
   --muted: #8b93ad;
   --accent: #8b9cf9;
   --border: #2a3149;
-  --surface: #232a40;
-  --modal-bg: #151a28;
-  --menu-bg: #1a2030;
-  --input-bg: #0d1119;
+  --surface: #2c3450;
+  --modal-bg: #1a2133;
+  --menu-bg: #212942;
+  --input-bg: #10141f;
 }
 
 :root[data-profile='midnight'][data-theme='light'] {
@@ -88,19 +88,19 @@
 /* -- Forest: green-tinted darks, sage light ------------------------------- */
 :root[data-profile='forest'] {
   --chrome-black: #070b08;
-  --panel-bg: #141b16;
-  --tabstrip-bg: #0e130f;
-  --omnibox-bg: #1d2820;
-  --sidebar-bg: #141b16;
-  --content-bg: #141b16;
+  --panel-bg: #1a231c;
+  --tabstrip-bg: #0b100c;
+  --omnibox-bg: #27362a;
+  --sidebar-bg: #1a231c;
+  --content-bg: #10150f;
   --text: #e2eae4;
   --muted: #90a196;
   --accent: #5fbf82;
   --border: #2b3a30;
-  --surface: #24322a;
-  --modal-bg: #18211a;
-  --menu-bg: #1d2820;
-  --input-bg: #10160f;
+  --surface: #2f4133;
+  --modal-bg: #1e2820;
+  --menu-bg: #253227;
+  --input-bg: #131a14;
 }
 
 :root[data-profile='forest'][data-theme='light'] {
@@ -123,19 +123,19 @@
 /* -- Ember: warm charcoal, amber accent ----------------------------------- */
 :root[data-profile='ember'] {
   --chrome-black: #0d0806;
-  --panel-bg: #1e1613;
-  --tabstrip-bg: #150f0c;
-  --omnibox-bg: #2a201b;
-  --sidebar-bg: #1e1613;
-  --content-bg: #1e1613;
+  --panel-bg: #251c16;
+  --tabstrip-bg: #120d0a;
+  --omnibox-bg: #352921;
+  --sidebar-bg: #251c16;
+  --content-bg: #171210;
   --text: #ede5df;
   --muted: #a99a90;
   --accent: #f0954f;
   --border: #3e312a;
-  --surface: #332822;
-  --modal-bg: #241a16;
-  --menu-bg: #2a201b;
-  --input-bg: #17110e;
+  --surface: #3d2f26;
+  --modal-bg: #2a211a;
+  --menu-bg: #332720;
+  --input-bg: #1a1410;
 }
 
 :root[data-profile='ember'][data-theme='light'] {
@@ -158,19 +158,19 @@
 /* -- Orchid: mauve darks, violet accent ----------------------------------- */
 :root[data-profile='orchid'] {
   --chrome-black: #0b070d;
-  --panel-bg: #1a1420;
-  --tabstrip-bg: #120d17;
-  --omnibox-bg: #261d2e;
-  --sidebar-bg: #1a1420;
-  --content-bg: #1a1420;
+  --panel-bg: #211a29;
+  --tabstrip-bg: #0f0a12;
+  --omnibox-bg: #30253c;
+  --sidebar-bg: #211a29;
+  --content-bg: #140f18;
   --text: #eae2f0;
   --muted: #a294ad;
   --accent: #c689e8;
   --border: #382c42;
-  --surface: #2d2336;
-  --modal-bg: #1f1826;
-  --menu-bg: #261d2e;
-  --input-bg: #140f19;
+  --surface: #392c46;
+  --modal-bg: #261e2f;
+  --menu-bg: #2e2439;
+  --input-bg: #17111c;
 }
 
 :root[data-profile='orchid'][data-theme='light'] {
@@ -193,19 +193,19 @@
 /* -- Ocean: deep teal darks, seafoam accent ------------------------------- */
 :root[data-profile='ocean'] {
   --chrome-black: #05090b;
-  --panel-bg: #0f1c1e;
-  --tabstrip-bg: #0a1416;
-  --omnibox-bg: #16282b;
-  --sidebar-bg: #0f1c1e;
-  --content-bg: #0f1c1e;
+  --panel-bg: #15272a;
+  --tabstrip-bg: #071012;
+  --omnibox-bg: #1f393d;
+  --sidebar-bg: #15272a;
+  --content-bg: #0b1416;
   --text: #dfeae9;
   --muted: #85a0a0;
   --accent: #35c2b4;
   --border: #24393c;
-  --surface: #1e3134;
-  --modal-bg: #132225;
-  --menu-bg: #16282b;
-  --input-bg: #0c1618;
+  --surface: #264449;
+  --modal-bg: #182b2e;
+  --menu-bg: #1e3539;
+  --input-bg: #0e181a;
 }
 
 :root[data-profile='ocean'][data-theme='light'] {
@@ -293,7 +293,7 @@ body {
 }
 
 .tab:hover {
-  background: var(--tabstrip-bg);
+  background: var(--hover);
 }
 
 .tab--active {
@@ -360,7 +360,7 @@ body {
 }
 
 .tab-new:hover:not(:disabled) {
-  background: var(--tabstrip-bg);
+  background: var(--hover);
   color: var(--text);
 }
 

@@ -40,6 +40,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 32 | Persistent downloads history | ✅ |
 | 33 | Pin tab to apps + account/app cycling shortcuts | ✅ |
 | 34 | Rename: Glide → Flit (app, bundle ID, repo, data migration) | ✅ |
+| 35 | Security hardening + size trim + Chrome-like dark contrast | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -80,6 +81,29 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 35 notes — hardening + dark contrast (2026-07-08)
+Security review outcomes (foundations were already sound — isolation tested
+per-build, no node/preload on account views, signature-verified updates,
+0 npm-audit vulns in the 3 prod deps):
+- **Origin-scoped permissions**: camera/mic (`media`) and `clipboard-read`
+  auto-grant ONLY for *.google.com / *.googleusercontent.com / *.youtube.com;
+  hard deny elsewhere (macOS TCC grants are app-wide, so site-blind grants
+  would give any page the camera silently). Add origins to
+  TRUSTED_MEDIA_SUFFIXES if a needed site breaks.
+- **External-protocol allowlist** (`openExternalSafe`): only
+  mailto/tel/sms/facetime(+audio)/zoommtg/msteams/slack/spotify reach the OS;
+  all three page-triggered call sites routed through it.
+- **LSFileQuarantineEnabled** + **CSP** on both internal pages
+  (script-src 'self'; remote images allowed for favicons/avatars).
+- **Size**: bundle is 97.6% Electron Framework (our code: 3 MB asar, 3 prod
+  deps); `electronLanguages: ["en"]` trims ~160 unused locale packs. ~100 MB
+  DMG is the Electron floor — already lean vs Chrome/Slack/VS Code.
+- Kept `allow-unsigned-executable-memory` entitlement (removal untested;
+  candidate for a future pass).
+- **Dark palettes restructured Chrome-style** in all six profiles: strip
+  darkest → toolbar/active tab clearly lighter → omnibox lighter still →
+  deep content gutter; tab hover now visible (was strip-colored).
 
 ### Phase 34 notes — rename Glide → Flit (2026-07-08)
 "Glide" collided with two existing browsers (a Mac App Store app and the

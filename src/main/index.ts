@@ -2,7 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { randomUUID } from 'crypto'
 import { existsSync, renameSync } from 'fs'
 import { join } from 'path'
-import { AccountManager, isExternalProtocol, type AccountConfig } from './accounts'
+import { AccountManager, isExternalProtocol, openExternalSafe, type AccountConfig } from './accounts'
 import { DownloadManager } from './downloads'
 import { ExtensionManager } from './extensions'
 import { HistoryManager } from './history'
@@ -258,7 +258,7 @@ app.on('web-contents-created', (_event, contents) => {
   contents.on('will-navigate', (e, url) => {
     if (isExternalProtocol(url)) {
       e.preventDefault()
-      void shell.openExternal(url).catch(() => {})
+      openExternalSafe(url) // allowlisted schemes only
     }
   })
 })

@@ -77,6 +77,44 @@ const GRANTED_PERMISSIONS = new Set([
   'pointerLock'
 ])
 
+// Camera/mic/clipboard-read are auto-granted ONLY to these origins. macOS TCC
+// approves the whole app once, so a site-blind grant would hand any page the
+// camera silently. Everything else gets a hard deny (no prompt UI to build).
+const SENSITIVE_PERMISSIONS = new Set(['media', 'clipboard-read'])
+const TRUSTED_MEDIA_SUFFIXES = ['.google.com', '.googleusercontent.com', '.youtube.com']
+
+function isTrustedMediaOrigin(url: string): boolean {
+  try {
+    const host = new URL(url).hostname
+    return TRUSTED_MEDIA_SUFFIXES.some((s) => host.endsWith(s) || host === s.slice(1))
+  } catch {
+    return false
+  }
+}
+
+// Only these app-protocol schemes are handed to the OS. Anything else a page
+// tries to launch (via redirect or window.open) is silently dropped — rogue
+// pages probing registered protocol handlers is a classic escape vector.
+const SAFE_EXTERNAL_SCHEMES = new Set([
+  'mailto',
+  'tel',
+  'sms',
+  'facetime',
+  'facetime-audio',
+  'zoommtg',
+  'msteams',
+  'slack',
+  'spotify'
+])
+
+/** Open an app-protocol link via the OS only if its scheme is allowlisted. */
+export function openExternalSafe(url: string): void {
+  const match = /^([a-z][a-z0-9+.-]*):/i.exec(url)
+  if (match && SAFE_EXTERNAL_SCHEMES.has(match[1].toLowerCase())) {
+    void shell.openExternal(url).catch(() => {})
+  }
+}
+
 export interface AccountConfig {
   id: string
   label: string
@@ -368,12 +406,19 @@ export class AccountManager implements ExtensionTabDelegate {
     // Consult live state on every request/check so toggling "Mute Notifications"
     // takes effect immediately — Chromium re-checks permission each time a page
     // tries to display a notification.
-    const allowed = (permission: string): boolean => {
+    const allowed = (permission: string, requestingUrl: string): boolean => {
       if (permission === 'notifications' && this.accounts.get(config.id)?.muted) return false
+      if (SENSITIVE_PERMISSIONS.has(permission) && !isTrustedMediaOrigin(requestingUrl)) {
+        return false
+      }
       return GRANTED_PERMISSIONS.has(permission)
     }
-    ses.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed(permission)))
-    ses.setPermissionCheckHandler((_wc, permission) => allowed(permission))
+    ses.setPermissionRequestHandler((wc, permission, callback, details) =>
+      callback(allowed(permission, details.requestingUrl ?? wc?.getURL() ?? ''))
+    )
+    ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) =>
+      allowed(permission, requestingOrigin)
+    )
 
     // Enable screen sharing (Google Meet getDisplayMedia). On macOS 15+ the
     // native system picker is used; otherwise we fall back to sharing the
@@ -659,7 +704,7 @@ export class AccountManager implements ExtensionTabDelegate {
     wc.setWindowOpenHandler(({ url, disposition }) => {
       // App-protocol popups (e.g. zoommtg://) → hand off to the OS / native app.
       if (isExternalProtocol(url)) {
-        void shell.openExternal(url).catch(() => {})
+        openExternalSafe(url) // allowlisted schemes only
         return { action: 'deny' }
       }
       // Link / target=_blank opens become tabs; only real popups (window.open
@@ -766,7 +811,7 @@ export class AccountManager implements ExtensionTabDelegate {
     wc.on('will-navigate', (e, url) => {
       if (isExternalProtocol(url)) {
         e.preventDefault()
-        void shell.openExternal(url).catch(() => {})
+        openExternalSafe(url) // allowlisted schemes only
       }
     })
 
