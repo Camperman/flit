@@ -122,9 +122,14 @@ const SAFE_EXTERNAL_SCHEMES = new Set([
   'spotify'
 ])
 
-export function isSafeExternalScheme(url: string): boolean {
+function schemeOf(url: string): string | undefined {
   const match = /^([a-z][a-z0-9+.-]*):/i.exec(url)
-  return match !== null && SAFE_EXTERNAL_SCHEMES.has(match[1].toLowerCase())
+  return match?.[1].toLowerCase()
+}
+
+export function isSafeExternalScheme(url: string): boolean {
+  const scheme = schemeOf(url)
+  return scheme !== undefined && SAFE_EXTERNAL_SCHEMES.has(scheme)
 }
 
 /** Open an app-protocol link via the OS only if its scheme is allowlisted. */
@@ -424,6 +429,7 @@ export class AccountManager implements ExtensionTabDelegate {
 
   private addMeta(config: AccountConfig): AccountMeta {
     const ses = session.fromPartition(partitionFor(config.id))
+    this.sessionAccounts.set(ses, config.id)
     this.downloads?.attach(ses, config.id)
     // No extensions for incognito — installs would write a disk profile.
     if (!config.ephemeral) this.extensions?.attach(ses, config.id)
@@ -447,11 +453,13 @@ export class AccountManager implements ExtensionTabDelegate {
     ses.setPermissionRequestHandler((wc, permission, callback, details) => {
       // App-protocol launches fired from subframes (Zoom's launcher fires
       // zoommtg:// from a hidden iframe) never hit will-navigate — Chromium
-      // routes them here as an 'openExternal' ask. Grant the same scheme
-      // allowlist as the navigation path; Chromium then launches the app.
+      // routes them here as an 'openExternal' ask. Allowlisted schemes are
+      // granted; other schemes with an installed handler prompt the user
+      // (remembered per origin per account); Chromium launches on grant.
       if (permission === 'openExternal') {
         const ext = (details as { externalURL?: string }).externalURL ?? ''
-        callback(isSafeExternalScheme(ext))
+        const source = details.requestingUrl ?? wc?.getURL() ?? ''
+        void this.consentForExternal(config.id, wc, source, ext).then(callback)
         return
       }
       const url = details.requestingUrl ?? wc?.getURL() ?? ''
@@ -504,6 +512,10 @@ export class AccountManager implements ExtensionTabDelegate {
   /** In-flight prompts, so simultaneous requests don't stack dialogs. */
   private readonly pendingPermissionPrompts = new Map<string, Promise<boolean>>()
 
+  /** Session → account id, so external-protocol consent can resolve the
+   *  account from any webContents on an account partition (incl. popups). */
+  private readonly sessionAccounts = new Map<Electron.Session, string>()
+
   /** Chrome-style ask for a sensitive permission on a non-Google origin;
    *  the answer is remembered per origin per account. */
   private promptSitePermission(
@@ -550,6 +562,82 @@ export class AccountManager implements ExtensionTabDelegate {
       .finally(() => this.pendingPermissionPrompts.delete(pendingKey))
     this.pendingPermissionPrompts.set(pendingKey, ask)
     return ask
+  }
+
+  /**
+   * Decide whether an external-protocol launch may proceed. Allowlisted
+   * schemes are always allowed. Unknown schemes with no installed handler are
+   * dropped silently (nothing would launch; also avoids prompt spam from
+   * pages probing protocols). Otherwise: Chrome-style ask — "site wants to
+   * open App" — remembered per origin + scheme per account.
+   */
+  private consentForExternal(
+    accountId: string | undefined,
+    wc: WebContents | null,
+    sourceUrl: string,
+    targetUrl: string
+  ): Promise<boolean> {
+    if (isSafeExternalScheme(targetUrl)) return Promise.resolve(true)
+    const scheme = schemeOf(targetUrl)
+    if (!scheme || !accountId) return Promise.resolve(false)
+    const appName = app.getApplicationNameForProtocol(targetUrl)
+    if (!appName) return Promise.resolve(false)
+    const meta = this.accounts.get(accountId)
+    const origin = originOf(sourceUrl)
+    if (!meta || !origin) return Promise.resolve(false)
+
+    const key = `${origin}|external:${scheme}`
+    const stored = meta.sitePermissions?.[key]
+    if (stored !== undefined) return Promise.resolve(stored)
+
+    const pendingKey = `${accountId}|${key}`
+    const pending = this.pendingPermissionPrompts.get(pendingKey)
+    if (pending) return pending
+
+    const host = new URL(origin).hostname
+    const win = (wc && BrowserWindow.fromWebContents(wc)) ?? BrowserWindow.getFocusedWindow()
+    const ask = dialog
+      .showMessageBox(win ?? BrowserWindow.getAllWindows()[0], {
+        type: 'question',
+        message: `“${host}” wants to open “${appName}”`,
+        detail: `Your answer is remembered for this site in the ${meta.label} account.`,
+        buttons: ['Open', 'Don’t Allow'],
+        defaultId: 1,
+        cancelId: 1
+      })
+      .then(({ response }) => {
+        const allow = response === 0
+        ;(meta.sitePermissions ??= {})[key] = allow
+        if (!meta.ephemeral) this.onState?.()
+        return allow
+      })
+      .finally(() => this.pendingPermissionPrompts.delete(pendingKey))
+    this.pendingPermissionPrompts.set(pendingKey, ask)
+    return ask
+  }
+
+  /** Launch an external-protocol URL after consent (navigation call sites). */
+  private openExternalWithConsent(
+    accountId: string | undefined,
+    wc: WebContents | null,
+    sourceUrl: string,
+    targetUrl: string
+  ): void {
+    void this.consentForExternal(accountId, wc, sourceUrl, targetUrl).then((allow) => {
+      if (allow) void shell.openExternal(targetUrl).catch(() => {})
+    })
+  }
+
+  /** External-protocol launch from any webContents (the global will-navigate
+   *  hook). Resolves the account from the contents' session partition; falls
+   *  back to the plain allowlist for non-account contents (internal pages). */
+  openExternalFromContents(wc: WebContents, targetUrl: string): void {
+    const accountId = this.sessionAccounts.get(wc.session)
+    if (!accountId) {
+      openExternalSafe(targetUrl)
+      return
+    }
+    this.openExternalWithConsent(accountId, wc, wc.getURL(), targetUrl)
   }
 
   /** Preferences → reset: forget every remembered site answer, all accounts. */
@@ -820,9 +908,10 @@ export class AccountManager implements ExtensionTabDelegate {
     })
 
     wc.setWindowOpenHandler(({ url, disposition }) => {
-      // App-protocol popups (e.g. zoommtg://) → hand off to the OS / native app.
+      // App-protocol popups (e.g. zoommtg://) → hand off to the OS / native
+      // app. Allowlisted schemes launch directly; others prompt for consent.
       if (isExternalProtocol(url)) {
-        openExternalSafe(url) // allowlisted schemes only
+        this.openExternalWithConsent(accountId, wc, wc.getURL(), url)
         return { action: 'deny' }
       }
       // Link / target=_blank opens become tabs; only real popups (window.open

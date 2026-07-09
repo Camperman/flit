@@ -254,12 +254,15 @@ app.on('open-url', (event, url) => {
 })
 
 // Forward app-protocol links (Zoom, mailto, Teams, …) to the OS from any web
-// contents, including popup windows opened by pages.
+// contents, including popup windows opened by pages. Allowlisted schemes
+// launch directly; other schemes prompt for consent (remembered per origin
+// per account); internal (non-account) pages stay allowlist-only.
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-navigate', (e, url) => {
     if (isExternalProtocol(url)) {
       e.preventDefault()
-      openExternalSafe(url) // allowlisted schemes only
+      if (accounts) accounts.openExternalFromContents(contents, url)
+      else openExternalSafe(url)
     }
   })
 })

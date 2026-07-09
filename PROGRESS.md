@@ -394,6 +394,26 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Unknown app-protocol links now prompt (Chrome-style) instead of
+  hard-deny.** `SAFE_EXTERNAL_SCHEMES` remains the no-prompt fast path. Any
+  other scheme: if no installed handler (`app.getApplicationNameForProtocol`
+  returns ''), silently dropped — nothing would launch, and pages probing
+  protocols get no signal. If a handler exists, a native dialog asks
+  `“site” wants to open “App”` (Open / Don't Allow, default deny); the answer
+  is remembered **per origin + scheme per account** on the existing
+  `sitePermissions` store (key `origin|external:<scheme>`), so it persists,
+  resets via Preferences → "Reset remembered answers", and stays memory-only
+  for incognito. All three launch paths route through one
+  `consentForExternal`: the global will-navigate hook (main-frame links —
+  account resolved via a new session→account map, non-account contents stay
+  allowlist-only), `setWindowOpenHandler` (window.open), and the
+  `openExternal` permission request (hidden-iframe launchers; Chromium
+  launches on grant). Verified by scripted matrix with stubbed dialog:
+  allowlisted → instant, no dialog; consent-allow (Maps) → dialog once, then
+  remembered; consent-deny via iframe (Music) → dialog once, denied,
+  remembered; no-handler scheme → silent. guard + build + smoke (×2) +
+  isolation pass. Manual check: click a Discord/Notion-style app link, approve
+  once, confirm no re-prompt.
 - **Fix — ✅ Zoom "Join from Zoom Workplace app" button dead (3 bugs).** Diagnosed
   by instrumenting every navigation/permission/launch path in a live run:
   (1) **Hidden-iframe protocol launches were denied.** Zoom's launcher fires
