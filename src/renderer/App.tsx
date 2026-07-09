@@ -325,7 +325,13 @@ export function App(): JSX.Element {
         <div className="main-col">
           <TopBar
             nav={nav}
-            partition={activeId ? `persist:account-${activeId}` : undefined}
+            partition={
+              activeId
+                ? activeId.startsWith('incognito-')
+                  ? activeId // memory-only partition (no persist: prefix)
+                  : `persist:account-${activeId}`
+                : undefined
+            }
             showActions={hasExtensions}
             onBack={() => void window.glide.goBack()}
             onForward={() => void window.glide.goForward()}

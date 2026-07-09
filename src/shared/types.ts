@@ -8,6 +8,8 @@ export interface AccountSummary {
   avatarUrl?: string
   /** Notifications from this account are suppressed. */
   muted?: boolean
+  /** Incognito session — memory-only, disappears on quit. */
+  ephemeral?: boolean
 }
 
 export interface NewAccountInput {

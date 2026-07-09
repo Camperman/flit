@@ -1476,3 +1476,10 @@ body {
 .topbar__target + .downloads {
   margin-left: 8px;
 }
+
+/* Incognito session avatar: dashed ring, glasses glyph */
+.account--incognito {
+  background: transparent;
+  border: 2px dashed var(--muted);
+  font-size: 18px;
+}

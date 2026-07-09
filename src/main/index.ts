@@ -66,6 +66,10 @@ function installMenu(): void {
   const focused = (): BrowserWindow | null => BrowserWindow.getFocusedWindow()
   buildAppMenu({
     newWindow: () => createWindow(),
+    newIncognito: () => {
+      const win = focused()
+      if (win) accounts?.createIncognito(win)
+    },
     openPreferences: () => focused()?.webContents.send('menu:preferences'),
     newTab: () => {
       const win = focused()

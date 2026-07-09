@@ -88,6 +88,8 @@ export interface AccountConfig {
   bookmarks?: BookmarkNode[]
   muted?: boolean
   tabs?: PersistedTab[]
+  /** Incognito: memory-only partition, never persisted, no history. */
+  ephemeral?: boolean
 }
 
 /** Shared, persisted metadata for an account (not window-specific). */
@@ -104,6 +106,8 @@ interface AccountMeta {
   muted?: boolean
   /** Tabs saved at last quit; consumed by ensureLoaded on restore. */
   savedTabs?: PersistedTab[]
+  /** Incognito: memory-only partition, never persisted, no history. */
+  ephemeral?: boolean
 }
 
 /** One open browser tab within an account, in a specific window. `view` is
@@ -189,6 +193,8 @@ const AVATAR_SCRIPT = `(() => {
 })()`
 
 export function partitionFor(id: string): string {
+  // No `persist:` prefix → in-memory partition; everything evaporates on quit.
+  if (id.startsWith('incognito-')) return id
   return `persist:account-${id}`
 }
 
@@ -355,7 +361,8 @@ export class AccountManager implements ExtensionTabDelegate {
   private addMeta(config: AccountConfig): AccountMeta {
     const ses = session.fromPartition(partitionFor(config.id))
     this.downloads?.attach(ses, config.id)
-    this.extensions?.attach(ses, config.id)
+    // No extensions for incognito — installs would write a disk profile.
+    if (!config.ephemeral) this.extensions?.attach(ses, config.id)
     // Consult live state on every request/check so toggling "Mute Notifications"
     // takes effect immediately — Chromium re-checks permission each time a page
     // tries to display a notification.
@@ -390,7 +397,8 @@ export class AccountManager implements ExtensionTabDelegate {
       bookmarks: config.bookmarks ?? [],
       avatarUrl: config.avatarUrl,
       muted: config.muted,
-      savedTabs: config.tabs
+      savedTabs: config.tabs,
+      ephemeral: config.ephemeral
     }
     this.accounts.set(meta.id, meta)
     if (!this.order.includes(meta.id)) this.order.push(meta.id)
@@ -589,7 +597,7 @@ export class AccountManager implements ExtensionTabDelegate {
       tab.currentUrl = wc.getURL()
       const meta = this.accounts.get(accountId)
       if (meta) meta.lastUrl = tab.currentUrl
-      this.history?.record(accountId, tab.currentUrl, wc.getTitle())
+      if (!meta?.ephemeral) this.history?.record(accountId, tab.currentUrl, wc.getTitle())
       this.onState?.()
       if (isActiveTab()) this.emitNav(ws)
     }
@@ -599,7 +607,9 @@ export class AccountManager implements ExtensionTabDelegate {
     })
     wc.on('page-title-updated', (_e, title) => {
       tab.title = title
-      this.history?.title(accountId, tab.currentUrl, title)
+      if (!this.accounts.get(accountId)?.ephemeral) {
+        this.history?.title(accountId, tab.currentUrl, title)
+      }
       const wa = this.accountState(ws, accountId)
       if (tab.originShortcutId) {
         const count = parseUnread(title)
@@ -1072,6 +1082,23 @@ export class AccountManager implements ExtensionTabDelegate {
     return id
   }
 
+  /** Cmd-Shift-N: an ephemeral "Incognito" session in the sidebar. Memory-only
+   *  partition, no history, no extensions, never persisted — gone on quit or
+   *  right-click → Remove. */
+  createIncognito(win: BrowserWindow): void {
+    const id = `incognito-${randomUUID()}`
+    this.addMeta({
+      id,
+      label: 'Incognito',
+      color: '#5f6368',
+      homeUrl: 'https://www.google.com',
+      ephemeral: true
+    })
+    for (const ws of this.allWindows()) this.ensureLoaded(ws, id)
+    this.setActive(win, id)
+    this.broadcastUpdated()
+  }
+
   updateAccount(id: string, patch: AccountPatch): void {
     const meta = this.accounts.get(id)
     if (!meta) return
@@ -1420,7 +1447,8 @@ export class AccountManager implements ExtensionTabDelegate {
         label: meta.label,
         color: meta.color,
         avatarUrl: meta.avatarUrl,
-        muted: meta.muted
+        muted: meta.muted,
+        ephemeral: meta.ephemeral
       }
     })
   }
@@ -1565,7 +1593,9 @@ export class AccountManager implements ExtensionTabDelegate {
     // Tabs from the primary (first) window; fall back to the not-yet-consumed
     // saved set so a quick launch+quit doesn't wipe a saved session.
     const primary = this.allWindows()[0]
-    return this.order.map((id, index) => {
+    return this.order
+      .filter((id) => !this.accounts.get(id)?.ephemeral)
+      .map((id, index) => {
       const meta = this.accounts.get(id)!
       const wa = primary?.perAccount.get(id)
       const tabs: PersistedTab[] | undefined =

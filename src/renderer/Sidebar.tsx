@@ -31,9 +31,9 @@ export function Sidebar({
             <div key={account.id} className="account-slot">
               <button
                 type="button"
-                className={`account${account.id === activeId ? ' account--active' : ''}`}
+                className={`account${account.id === activeId ? ' account--active' : ''}${account.ephemeral ? ' account--incognito' : ''}`}
                 style={{ '--account-color': account.color } as CSSProperties}
-                title={account.label}
+                title={account.ephemeral ? 'Incognito (gone on quit)' : account.label}
                 data-testid={`account-${account.id}`}
                 aria-pressed={account.id === activeId}
                 onClick={() => onSelect(account.id)}
@@ -42,7 +42,9 @@ export function Sidebar({
                   onContextMenu(account.id)
                 }}
               >
-                {account.avatarUrl ? (
+                {account.ephemeral ? (
+                  '🕶'
+                ) : account.avatarUrl ? (
                   <img className="account__img" src={account.avatarUrl} alt="" />
                 ) : (
                   account.label.charAt(0).toUpperCase()

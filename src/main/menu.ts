@@ -3,6 +3,7 @@ import type { AppRailLayout } from '../shared/types'
 
 export interface MenuHandlers {
   newWindow: () => void
+  newIncognito: () => void
   openPreferences: () => void
   setDefaultBrowser: () => void
   switchToIndex: (index: number) => void
@@ -74,6 +75,11 @@ export function buildAppMenu(handlers: MenuHandlers): void {
           label: 'New Window',
           accelerator: 'CommandOrControl+N',
           click: () => handlers.newWindow()
+        },
+        {
+          label: 'New Incognito Session',
+          accelerator: 'CommandOrControl+Shift+N',
+          click: () => handlers.newIncognito()
         },
         {
           label: 'Reopen Closed Tab',
