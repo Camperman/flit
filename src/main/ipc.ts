@@ -25,7 +25,8 @@ export function registerIpc(
   prefs: PrefsManager,
   extensions: ExtensionManager,
   omnibox: OmniboxManager,
-  history: HistoryManager
+  history: HistoryManager,
+  firstRun: { get: () => boolean; clear: () => void }
 ): void {
   const winOf = (event: IpcMainInvokeEvent): BrowserWindow | null =>
     BrowserWindow.fromWebContents(event.sender)
@@ -197,6 +198,10 @@ export function registerIpc(
   ipcMain.handle('downloads:show', (_e, id: string) => downloads.show(id))
   ipcMain.handle('downloads:cancel', (_e, id: string) => downloads.cancel(id))
   ipcMain.handle('downloads:clear', () => downloads.clear())
+
+  // ---- first-run onboarding ----
+  ipcMain.handle('app:first-run', () => firstRun.get())
+  ipcMain.handle('app:first-run-done', () => firstRun.clear())
 
   // ---- preferences ----
   ipcMain.handle('prefs:get', () => prefs.state())

@@ -11,6 +11,7 @@ import { Downloads } from './Downloads'
 import { FindBar } from './FindBar'
 import { HistoryDialog } from './HistoryDialog'
 import { PreferencesDialog } from './PreferencesDialog'
+import { WelcomeDialog } from './WelcomeDialog'
 import type {
   AccountSummary,
   AppInfo,
@@ -65,6 +66,7 @@ export function App(): JSX.Element {
   const [targetUrl, setTargetUrl] = useState('')
   const [bookmarkDialog, setBookmarkDialog] = useState<BookmarkDialogState | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [welcomeOpen, setWelcomeOpen] = useState(false)
 
   useEffect(() => {
     void window.glide.listAccounts().then(setAccounts)
@@ -84,6 +86,7 @@ export function App(): JSX.Element {
     const offImport = window.glide.onImportBookmarks(() => setImportOpen(true))
     void window.glide.getDownloads().then(setDownloads)
     const offDownloads = window.glide.onDownloadsState(setDownloads)
+    void window.glide.isFirstRun().then(setWelcomeOpen)
     void window.glide.getPrefs().then(setPrefsState)
     const offPrefs = window.glide.onPrefsChanged(setPrefsState)
     const offOpenPrefs = window.glide.onOpenPreferences(() => setPrefsOpen(true))
@@ -202,10 +205,20 @@ export function App(): JSX.Element {
           importOpen ||
           downloadsOpen ||
           prefsOpen ||
-          historyOpen
+          historyOpen ||
+          welcomeOpen
       )
     )
-  }, [dialog, shortcutDialog, bookmarkDialog, importOpen, downloadsOpen, prefsOpen, historyOpen])
+  }, [
+    dialog,
+    shortcutDialog,
+    bookmarkDialog,
+    importOpen,
+    downloadsOpen,
+    prefsOpen,
+    historyOpen,
+    welcomeOpen
+  ])
 
   // Theme: main owns resolution (nativeTheme + appearance pref) and pushes the
   // resolved dark/light with every prefs broadcast — one source of truth.
@@ -424,6 +437,17 @@ export function App(): JSX.Element {
             setBookmarkDialog(null)
           }}
           onCancel={() => setBookmarkDialog(null)}
+        />
+      )}
+
+      {welcomeOpen && accounts[0] && (
+        <WelcomeDialog
+          initialLabel={accounts[0].label}
+          onDone={(label, color) => {
+            void window.glide.updateAccount(accounts[0].id, { label, color })
+            void window.glide.completeFirstRun()
+            setWelcomeOpen(false)
+          }}
         />
       )}
 

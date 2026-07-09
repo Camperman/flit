@@ -25,6 +25,9 @@ if (process.env.GLIDE_USER_DATA_DIR) {
 let accounts: AccountManager | undefined
 let prefs: PrefsManager | undefined
 let historyRef: HistoryManager | undefined
+// Captured at startup: buildState() would otherwise drop the flag on the
+// first debounced persist, before the renderer ever asks about it.
+let firstRun = false
 let state: PersistedState = { version: 1, accounts: [] }
 let persistTimer: NodeJS.Timeout | undefined
 
@@ -42,7 +45,8 @@ function buildState(): PersistedState {
     layout: accounts?.getLayout() ?? state.layout,
     bookmarksBar: accounts?.getBookmarksBarVisible() ?? state.bookmarksBar,
     seededPasswordsApp: state.seededPasswordsApp,
-    prefs: prefs?.snapshot() ?? state.prefs
+    prefs: prefs?.snapshot() ?? state.prefs,
+    firstRun: firstRun || undefined
   }
 }
 
@@ -218,6 +222,7 @@ app.on('web-contents-created', (_event, contents) => {
 app.whenReady().then(() => {
   if (!gotInstanceLock) return
   state = loadState()
+  firstRun = state.firstRun === true
   seedPasswordsApp()
 
   const downloads = new DownloadManager()
@@ -235,7 +240,13 @@ app.whenReady().then(() => {
     schedulePersist()
   })
   const omnibox = new OmniboxManager(accounts, history, prefs)
-  registerIpc(accounts, createWindow, downloads, prefs, extensions, omnibox, history)
+  registerIpc(accounts, createWindow, downloads, prefs, extensions, omnibox, history, {
+    get: () => firstRun,
+    clear: () => {
+      firstRun = false
+      persistNow()
+    }
+  })
 
   const configs: AccountConfig[] = [...state.accounts]
     .sort((a, b) => a.order - b.order)

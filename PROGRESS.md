@@ -33,6 +33,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 25 | Tab restore, Cmd-D bookmarks, dock badge, richer context menu | ✅ |
 | 26 | Incognito sessions (Cmd-Shift-N, memory-only partition) | ✅ |
 | 27 | Crash auto-recovery + history page (Cmd-Y) | ✅ |
+| 28 | First-run onboarding (welcome flow, single starter account) | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -73,6 +74,15 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 28 notes — first-run onboarding (2026-07-08)
+Fresh installs now seed ONE starter account ("Personal") instead of three
+placeholders, plus a `firstRun` flag (captured at startup — buildState would
+otherwise drop it on the first debounced persist). The welcome dialog names
+the account, picks a color, and points at the sidebar + and Cmd-,. Verified
+by automated test: rename applies, flag clears, no welcome on relaunch.
+Existing installs are untouched (their state file already exists). The
+isolation test now adds its second account through the real addAccount API.
 
 ### Phase 26–27 notes — incognito, crash recovery, history page (2026-07-08)
 - **Incognito (Cmd-Shift-N)**: ephemeral account on a memory-only partition

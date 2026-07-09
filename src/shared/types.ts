@@ -185,6 +185,10 @@ export interface TabsState {
 export interface GlideApi {
   /** Open a new app window (Cmd-N). */
   newWindow(): Promise<void>
+  /** Fresh install? Drives the one-time welcome flow. */
+  isFirstRun(): Promise<boolean>
+  /** Welcome flow finished — never show it again. */
+  completeFirstRun(): Promise<void>
   listAccounts(): Promise<AccountSummary[]>
   getActive(): Promise<string | undefined>
   switchAccount(id: string): Promise<void>

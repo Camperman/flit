@@ -53,16 +53,18 @@ export interface PersistedState {
   seededPasswordsApp?: boolean
   /** User preferences (partial; defaults merged at load). */
   prefs?: Partial<Prefs>
+  /** Fresh install: show the welcome flow once. */
+  firstRun?: boolean
 }
 
+// Fresh installs start with a single starter account; the welcome flow
+// (firstRun) lets the user name it, and the sidebar + adds more.
 const DEFAULT_ACCOUNTS: PersistedAccount[] = [
-  { id: 'one', label: 'One', color: '#4c8bf5', homeUrl: 'https://mail.google.com', order: 0 },
-  { id: 'two', label: 'Two', color: '#34a853', homeUrl: 'https://mail.google.com', order: 1 },
-  { id: 'three', label: 'Three', color: '#ea4335', homeUrl: 'https://mail.google.com', order: 2 }
+  { id: 'personal', label: 'Personal', color: '#4c8bf5', homeUrl: 'https://mail.google.com', order: 0 }
 ]
 
 export function defaultState(): PersistedState {
-  return { version: 1, accounts: DEFAULT_ACCOUNTS.map((a) => ({ ...a })) }
+  return { version: 1, accounts: DEFAULT_ACCOUNTS.map((a) => ({ ...a })), firstRun: true }
 }
 
 /** Shared mode is opt-in: explicit env, or the shared file already exists. */

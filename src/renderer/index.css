@@ -1578,3 +1578,43 @@ body {
   display: flex;
   justify-content: space-between;
 }
+
+/* Welcome (first run) */
+.modal.welcome {
+  width: 400px;
+}
+
+.modal.welcome h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.welcome__lede {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.welcome__colors {
+  display: flex;
+  gap: 8px;
+}
+
+.welcome__color {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.welcome__color.is-active {
+  border-color: var(--text);
+}
+
+.welcome__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}

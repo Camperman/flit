@@ -11,6 +11,20 @@ test('account sessions are isolated', async () => {
   const page = await app.firstWindow()
   await expect(page).toHaveTitle(/Glide/)
 
+  // Fresh installs seed a single account (Phase 28 onboarding); add a second
+  // through the real account API so isolation is provable.
+  const initial = await page.evaluate(() => window.glide.__test.partitions())
+  if (Object.keys(initial).length < 2) {
+    await page.evaluate(() =>
+      window.glide.addAccount({
+        label: 'Second',
+        color: '#34a853',
+        homeUrl: 'https://mail.google.com'
+      })
+    )
+    await page.waitForTimeout(300)
+  }
+
   const partitions = await page.evaluate(() => window.glide.__test.partitions())
   const ids = Object.keys(partitions)
   const values = Object.values(partitions)

@@ -17,6 +17,8 @@ import type {
 // state — it sends intents to main and renders state pushed back.
 const api: GlideApi = {
   newWindow: () => ipcRenderer.invoke('window:new'),
+  isFirstRun: () => ipcRenderer.invoke('app:first-run'),
+  completeFirstRun: () => ipcRenderer.invoke('app:first-run-done'),
   listAccounts: () => ipcRenderer.invoke('accounts:list'),
   getActive: () => ipcRenderer.invoke('accounts:active'),
   switchAccount: (id) => ipcRenderer.invoke('accounts:switch', id),
