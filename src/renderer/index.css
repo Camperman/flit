@@ -970,6 +970,104 @@ body {
   margin-top: 4px;
 }
 
+/* Add-app dialog with the quick-add catalog: wider, catalog scrolls. */
+.modal--catalog {
+  width: 560px;
+  max-height: 80vh;
+}
+
+.catalog__search {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.catalog {
+  overflow-y: auto;
+  min-height: 120px;
+  max-height: 300px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.catalog__empty {
+  color: var(--muted);
+  font-size: 12px;
+  margin: auto;
+}
+
+.catalog__cat h3 {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.catalog__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.catalog__item:hover {
+  background: var(--hover-soft);
+}
+
+.catalog__item--picked {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.catalog__item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog__item img {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.catalog__letter {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn {
   padding: 8px 14px;
   border-radius: 10px;

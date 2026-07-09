@@ -394,6 +394,22 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ App catalog in the Add App dialog (100 apps, 14 categories).**
+  Shift-parity quick-add: the add-shortcut dialog (app rail +) now shows a
+  searchable, categorized catalog (`src/renderer/appCatalog.ts` — Email,
+  Messaging, Google, AI, Productivity, Microsoft, Developer, Design, Social,
+  Media, Files & Notes, Business, News, Shopping). Clicking an entry fills
+  Label + URL (fields stay editable; any custom URL still works — catalog is
+  a convenience, not a gate). Icons via Google's favicon service
+  (`s2/favicons`, CSP already allows https: images) with letter-chip fallback
+  on error; once opened, the rail's own `page-favicon-updated` capture takes
+  over. Edit mode (shortcuts + bookmarks reuse) is unchanged — catalog shows
+  in add mode only. Renderer-only change. Verified by scripted run: dialog
+  renders with live favicons; search "slack" filters to 1; picking fills
+  label/URL correctly. guard + build + smoke (×2) + isolation pass.
+  Positioning note: README + site copy broadened from "Google accounts" to
+  "any site with a login" (the isolation was never Google-specific; only the
+  seeded defaults, avatar scrape, and trusted-media origins are).
 - **Polish — ✅ Unknown app-protocol links now prompt (Chrome-style) instead of
   hard-deny.** `SAFE_EXTERNAL_SCHEMES` remains the no-prompt fast path. Any
   other scheme: if no installed handler (`app.getApplicationNameForProtocol`
