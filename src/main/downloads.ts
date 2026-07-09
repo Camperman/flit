@@ -1,11 +1,12 @@
 import { BrowserWindow, app, shell, type DownloadItem, type Session } from 'electron'
 import { randomUUID } from 'crypto'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { basename, extname, join } from 'path'
 import type { DownloadInfo } from '../shared/types'
 
-/** Keep at most this many finished entries in the session list. */
-const MAX_FINISHED = 20
+/** Keep at most this many finished entries in the (persisted) list. */
+const MAX_FINISHED = 50
+const SAVE_DEBOUNCE_MS = 1000
 
 /** `report.pdf` → `report (2).pdf` until the name is free in ~/Downloads. */
 function uniquePath(dir: string, filename: string): string {
@@ -28,6 +29,41 @@ export class DownloadManager {
   private downloads: DownloadInfo[] = []
   private directory = ''
   private askWhereToSave = false
+  private saveTimer: NodeJS.Timeout | undefined
+
+  private path(): string {
+    return join(app.getPath('userData'), 'glide-downloads.json')
+  }
+
+  /** Restore finished downloads from the last run (per-user file). */
+  load(): void {
+    try {
+      const parsed = JSON.parse(readFileSync(this.path(), 'utf8')) as {
+        version: 1
+        downloads: DownloadInfo[]
+      }
+      if (parsed?.version === 1 && Array.isArray(parsed.downloads)) {
+        // Anything still "progressing" died with the previous process.
+        this.downloads = parsed.downloads.map((d) =>
+          d.state === 'progressing' || d.state === 'paused' ? { ...d, state: 'interrupted' } : d
+        )
+      }
+    } catch {
+      // first run / unreadable — start empty
+    }
+  }
+
+  private scheduleSave(): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer)
+    this.saveTimer = setTimeout(() => {
+      try {
+        writeFileSync(this.path(), JSON.stringify({ version: 1, downloads: this.downloads }), 'utf8')
+      } catch {
+        // best-effort
+      }
+    }, SAVE_DEBOUNCE_MS)
+    this.saveTimer.unref?.()
+  }
 
   /** Preferences pushed from the prefs manager. */
   configure(prefs: { downloadsDir: string; askWhereToSave: boolean }): void {
@@ -99,6 +135,7 @@ export class DownloadManager {
 
   /** Push the list to every window and update the dock progress bar. */
   private emit(): void {
+    this.scheduleSave()
     const active = this.downloads.filter((d) => d.state === 'progressing' || d.state === 'paused')
     const total = active.reduce((sum, d) => sum + d.totalBytes, 0)
     const received = active.reduce((sum, d) => sum + d.receivedBytes, 0)

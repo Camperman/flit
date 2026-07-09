@@ -36,6 +36,8 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 28 | First-run onboarding (welcome flow, single starter account) | ✅ |
 | 29 | Omnibox live search suggestions | ✅ |
 | 30 | Command palette (Cmd-K quick switcher) | ✅ |
+| 31 | Per-account accent theming (pref, default on) | ✅ |
+| 32 | Persistent downloads history | ✅ |
 
 ## Next up
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
@@ -76,6 +78,14 @@ method instead** — on Google's "Something went wrong / Make sure Bluetooth is
 on" screen, click **Try another way** → "Tap Yes on your phone" (internet-based,
 not BLE) / authenticator code / password / backup code. Sessions persist, so
 this is one-time per account. Revisit only if we ever add Developer-ID signing.
+
+### Phase 31–32 notes — account accent + persistent downloads (2026-07-08)
+- **Accent follows active account** (pref, default on, Preferences → General):
+  the chrome accent (`--accent` inline override on the root) takes the active
+  account's color; off → the color profile's accent applies.
+- **Downloads persist** across restarts (per-user `glide-downloads.json`, cap
+  50 finished; in-flight entries from a crash normalize to "interrupted").
+  The ↓ button now appears from launch once you've ever downloaded.
 
 ### Phase 29–30 notes — live suggestions + command palette (2026-07-08)
 - **Live search suggestions**: OpenSearch endpoints per engine (Google

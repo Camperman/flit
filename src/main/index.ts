@@ -227,6 +227,7 @@ app.whenReady().then(() => {
   seedPasswordsApp()
 
   const downloads = new DownloadManager()
+  downloads.load()
   ExtensionManager.handleCRXProtocol() // serve crx:// icons for the toolbar UI
   const extensions = new ExtensionManager()
   const history = new HistoryManager()
