@@ -394,6 +394,20 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Drag-reorder accounts + unified sidebar layout.** Two tweaks:
+  (1) **Account avatars are now draggable** to reorder the sidebar — mirrors the
+  existing app/tab reorder pattern (local order state in `Sidebar.tsx`, commit on
+  drop via a new `accounts:reorder` IPC). Main's `reorderAccounts` rebuilds
+  `this.order` (which already drives both render and persistence), re-broadcasts
+  summaries to every window, and persists. (2) A **third apps-bar layout,
+  `'sidebar'`** (`AppRailLayout = 'left' | 'top' | 'sidebar'`), stacks the app rail
+  **inside the account sidebar, under the avatars** — icon-only to fit the 64px
+  column, divider between, ⚙ pinned at the bottom. Apps stay drag-reorderable there
+  (the `AppRail` reorder works regardless of mount point). Set from View → App
+  Layout → "In Account Sidebar" or Preferences → General → "In sidebar".
+  `contentLeft()` needed no change (only `'left'` reserves a separate column).
+  guard + build + smoke (×2) + isolation pass; unified layout verified via
+  scripted screenshot (accounts + apps in one column, prefs pinned).
 - **Polish — ✅ Rounded content card (Electron 34).** Upgraded Electron 33 → 34
   for `WebContentsView.setBorderRadius`. Each tab view now has rounded corners
   (`CONTENT_RADIUS`) and is inset by `CONTENT_INSET` (8px) so the dark-gray chrome

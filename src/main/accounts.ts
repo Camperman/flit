@@ -1639,6 +1639,25 @@ export class AccountManager implements ExtensionTabDelegate {
     this.onState?.()
   }
 
+  /**
+   * Reorder the account sidebar. Account metadata (incl. `order`) is shared
+   * across windows, so this rebuilds `this.order`, re-broadcasts summaries to
+   * every window, and persists (order already drives both render and disk).
+   */
+  reorderAccounts(ids: string[]): void {
+    const next: string[] = []
+    for (const id of ids) {
+      if (this.accounts.has(id) && !next.includes(id)) next.push(id)
+    }
+    for (const id of this.order) {
+      if (!next.includes(id)) next.push(id)
+    }
+    if (next.length !== this.order.length) return
+    this.order = next
+    this.broadcastUpdated()
+    this.onState?.()
+  }
+
   reorderShortcuts(accountId: string, shortcutIds: string[]): void {
     const meta = this.accounts.get(accountId)
     if (!meta) return

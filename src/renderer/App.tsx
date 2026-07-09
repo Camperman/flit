@@ -361,10 +361,17 @@ export function App(): JSX.Element {
           activeId={activeId}
           unread={unread}
           onSelect={handleSelect}
+          onReorder={(ids) => {
+            setAccounts((prev) => ids.map((id) => prev.find((a) => a.id === id)!).filter(Boolean))
+            void window.flit.reorderAccounts(ids)
+          }}
           onAdd={openAdd}
           onOpenPreferences={() => setPrefsOpen(true)}
           onContextMenu={(id) => void window.flit.showAccountMenu(id)}
-        />
+          unified={layout === 'sidebar'}
+        >
+          {layout === 'sidebar' && <AppRail {...appRailProps} variant="sidebar" />}
+        </Sidebar>
 
         {layout === 'left' && <AppRail {...appRailProps} variant="rail" />}
 

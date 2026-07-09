@@ -719,6 +719,31 @@ body {
   font-size: 15px;
 }
 
+/* 'sidebar' layout: the app rail lives inside the account sidebar, stacked
+   under the avatars. Icon-only (labels are dropped in this variant) to fit the
+   64px column; a divider separates it from the accounts, and it grows to fill
+   so the ⚙ button stays pinned at the bottom. */
+.sidebar--unified .sidebar__accounts {
+  flex: 0 0 auto;
+}
+
+.apprail--sidebar {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: transparent;
+  gap: 8px;
+  padding: 10px 0 0;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.apprail--sidebar .apprail__item {
+  width: 44px;
+  padding: 4px 0;
+  border-radius: 12px;
+}
+
 /* Bookmarks bar. Height must match BOOKMARKS_BAR_HEIGHT in accounts.ts.
    Overflowing items collapse into the » More menu (no scrollbar). */
 .bookmarksbar {

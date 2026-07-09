@@ -3,6 +3,7 @@ import { THEMES } from '../shared/themes'
 import type {
   AccountSummary,
   Appearance,
+  AppRailLayout,
   ExtensionInfo,
   Prefs,
   SearchEngine
@@ -11,7 +12,7 @@ import type {
 interface PreferencesDialogProps {
   prefs: Prefs
   /** Current app-rail layout (owned by main; same setting as View menu). */
-  layout: 'left' | 'top'
+  layout: AppRailLayout
   /** Resolved appearance (drives which swatch variant is previewed). */
   dark: boolean
   accounts: AccountSummary[]
@@ -153,6 +154,13 @@ export function PreferencesDialog({
                     onClick={() => void window.flit.setLayout('top')}
                   >
                     Top bar
+                  </button>
+                  <button
+                    type="button"
+                    className={layout === 'sidebar' ? 'is-active' : ''}
+                    onClick={() => void window.flit.setLayout('sidebar')}
+                  >
+                    In sidebar
                   </button>
                 </div>
               </div>

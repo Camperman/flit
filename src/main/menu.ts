@@ -168,6 +168,12 @@ export function buildAppMenu(handlers: MenuHandlers): void {
               type: 'radio',
               checked: handlers.layout === 'top',
               click: () => handlers.setLayout('top')
+            },
+            {
+              label: 'In Account Sidebar',
+              type: 'radio',
+              checked: handlers.layout === 'sidebar',
+              click: () => handlers.setLayout('sidebar')
             }
           ]
         }

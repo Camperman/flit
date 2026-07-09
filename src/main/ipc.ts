@@ -8,6 +8,7 @@ import type { PrefsManager } from './prefs'
 import { checkForUpdatesInteractive } from './updater'
 import type {
   AccountPatch,
+  AppRailLayout,
   NewAccountInput,
   Prefs,
   ShortcutInput,
@@ -173,6 +174,7 @@ export function registerIpc(
     accounts.updateAccount(id, patch)
   )
   ipcMain.handle('accounts:remove', (_e, id: string) => accounts.removeAccount(id))
+  ipcMain.handle('accounts:reorder', (_e, ids: string[]) => accounts.reorderAccounts(ids))
 
   ipcMain.handle('shortcuts:list', (_e, accountId: string) => accounts.shortcutsFor(accountId))
   ipcMain.handle('shortcuts:add', (_e, accountId: string, input: ShortcutInput) =>
@@ -191,7 +193,7 @@ export function registerIpc(
   )
 
   ipcMain.handle('layout:get', () => accounts.getLayout())
-  ipcMain.handle('layout:set', (_e, layout: 'left' | 'top') => {
+  ipcMain.handle('layout:set', (_e, layout: AppRailLayout) => {
     accounts.setLayout(layout)
     onLayoutSet?.() // rebuild the menu so its radio reflects the new choice
   })

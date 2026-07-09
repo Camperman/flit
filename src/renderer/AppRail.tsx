@@ -5,8 +5,12 @@ interface AppRailProps {
   apps: AppInfo[]
   activeId?: string
   disabled: boolean
-  /** 'rail' = vertical left column (favicon + label); 'top' = compact icon row. */
-  variant: 'rail' | 'top'
+  /**
+   * 'rail'    = vertical left column (favicon + label);
+   * 'top'     = compact icon row in the title bar;
+   * 'sidebar' = icon-only column stacked under the account avatars.
+   */
+  variant: 'rail' | 'top' | 'sidebar'
   onOpen: (shortcutId: string) => void
   onReorder: (shortcutIds: string[]) => void
   onAdd: () => void
@@ -53,7 +57,7 @@ export function AppRail({
 
   return (
     <nav
-      className={`apprail${variant === 'top' ? ' apprail--top' : ''}`}
+      className={`apprail${variant === 'top' ? ' apprail--top' : ''}${variant === 'sidebar' ? ' apprail--sidebar' : ''}`}
       data-testid="apprail"
       aria-label="Apps"
     >

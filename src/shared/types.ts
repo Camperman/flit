@@ -32,8 +32,13 @@ export interface Shortcut {
   favicon?: string
 }
 
-/** Where the app rail is rendered. */
-export type AppRailLayout = 'left' | 'top'
+/**
+ * Where the app rail is rendered.
+ * - 'left'    — its own vertical column beside the account sidebar
+ * - 'top'     — compact icon row in the title bar
+ * - 'sidebar' — stacked under the account avatars in the same left column
+ */
+export type AppRailLayout = 'left' | 'top' | 'sidebar'
 
 export interface BookmarkLink {
   type: 'link'
@@ -201,6 +206,8 @@ export interface FlitApi {
   addAccount(input: NewAccountInput): Promise<void>
   updateAccount(id: string, patch: AccountPatch): Promise<void>
   removeAccount(id: string): Promise<void>
+  /** Reorder the account sidebar (drag-and-drop). */
+  reorderAccounts(ids: string[]): Promise<void>
   goBack(): Promise<void>
   goForward(): Promise<void>
   reload(): Promise<void>

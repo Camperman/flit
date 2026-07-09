@@ -27,6 +27,7 @@ const api: FlitApi = {
   addAccount: (input) => ipcRenderer.invoke('accounts:add', input),
   updateAccount: (id, patch) => ipcRenderer.invoke('accounts:update', id, patch),
   removeAccount: (id) => ipcRenderer.invoke('accounts:remove', id),
+  reorderAccounts: (ids) => ipcRenderer.invoke('accounts:reorder', ids),
   onActiveChanged: (cb) => {
     const listener = (_event: unknown, id: string): void => cb(id)
     ipcRenderer.on('accounts:active-changed', listener)
