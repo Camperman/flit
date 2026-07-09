@@ -597,9 +597,11 @@ body {
   background: var(--surface);
 }
 
-/* The lighter backing marks the ACTIVE app only. */
+/* The active app is unmistakable: accent-tinted chip + accent ring
+   (the accent follows the active account's color when that pref is on). */
 .apprail__item--active .apprail__icon {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 
 .apprail__badge {
