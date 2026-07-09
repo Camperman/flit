@@ -173,6 +173,10 @@ interface Tab {
   lastActive: number
   audible?: boolean
   muted?: boolean
+  /** True while this is a fresh "new tab" still sitting on the new-tab home
+   *  page — the address bar shows empty + focused (Chrome-style) until the tab
+   *  navigates somewhere else. */
+  blank?: boolean
   /** Recent renderer-crash timestamps (rate-limits auto-reload). */
   crashTimes?: number[]
 }
@@ -739,6 +743,8 @@ export class AccountManager implements ExtensionTabDelegate {
 
     const onNav = (): void => {
       tab.currentUrl = wc.getURL()
+      // A blank new tab stops being blank once it leaves the new-tab home page.
+      if (tab.blank && !this.isNewTabHome(tab.currentUrl)) tab.blank = false
       const meta = this.accounts.get(accountId)
       if (meta) meta.lastUrl = tab.currentUrl
       if (!meta?.ephemeral) this.history?.record(accountId, tab.currentUrl, wc.getTitle())
@@ -949,6 +955,7 @@ export class AccountManager implements ExtensionTabDelegate {
     const ws = this.wsFor(win)
     if (!ws) return
     const tab = this.openTab(ws, accountId, this.newTabUrl)
+    tab.blank = true // address bar starts empty + focused (Chrome-style)
     this.accountState(ws, accountId).activeTabId = tab.id
     this.afterTabChange(ws, accountId)
   }
@@ -1534,7 +1541,21 @@ export class AccountManager implements ExtensionTabDelegate {
       url: wc.getURL(),
       canGoBack: wc.navigationHistory.canGoBack(),
       canGoForward: wc.navigationHistory.canGoForward(),
-      title: wc.getTitle()
+      title: wc.getTitle(),
+      blank: !!tab.blank
+    }
+  }
+
+  /** Same origin + path as the configured new-tab URL (query/hash ignored), so
+   *  a blank tab stays blank through Google's homepage redirects but clears the
+   *  moment the user navigates (e.g. runs a search → /search). */
+  private isNewTabHome(url: string): boolean {
+    try {
+      const a = new URL(url)
+      const b = new URL(this.newTabUrl)
+      return a.origin === b.origin && a.pathname === b.pathname
+    } catch {
+      return false
     }
   }
 

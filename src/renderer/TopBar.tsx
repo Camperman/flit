@@ -29,11 +29,19 @@ export function TopBar({
 }: TopBarProps): JSX.Element {
   const [value, setValue] = useState(nav?.url ?? '')
   const inputRef = useRef<HTMLInputElement>(null)
+  const blank = nav?.blank ?? false
 
   // Follow the active view's URL as it navigates / switches accounts or tabs.
+  // A blank new tab shows an empty field (the page loads the new-tab home, but
+  // the address bar stays empty so you can type any destination).
   useEffect(() => {
-    setValue(nav?.url ?? '')
-  }, [nav?.url, nav?.accountId, nav?.tabId])
+    setValue(blank ? '' : (nav?.url ?? ''))
+  }, [nav?.url, nav?.accountId, nav?.tabId, blank])
+
+  // Land the cursor in the address bar when a blank new tab becomes active.
+  useEffect(() => {
+    if (blank) inputRef.current?.focus()
+  }, [blank, nav?.tabId])
 
   // Cmd-L: focus + select the address field.
   useEffect(() => {

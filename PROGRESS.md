@@ -394,6 +394,16 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ New tab lands the cursor in an empty address bar (Chrome-style).**
+  Opening a tab (⌘T / +) still loads the new-tab home page (google.com) in the
+  view, but the address bar is now **empty + focused** so you can type any
+  destination immediately — mirroring Chrome's NTP. Implemented with a per-tab
+  `blank` flag (set in `newTab`, cleared in `onNav` once the tab leaves the
+  new-tab home via `isNewTabHome` = same origin+path, so it survives Google's
+  homepage redirects but clears on the first real navigation like `/search`).
+  `NavState.blank` carries it to the renderer; `TopBar` shows an empty field +
+  focuses the input while blank. guard + build + smoke (×2) + isolation pass;
+  verified by script (new tab → address value `""`, focused `true`).
 - **Polish — ✅ Drag-reorder accounts + unified sidebar layout.** Two tweaks:
   (1) **Account avatars are now draggable** to reorder the sidebar — mirrors the
   existing app/tab reorder pattern (local order state in `Sidebar.tsx`, commit on

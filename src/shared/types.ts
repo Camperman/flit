@@ -166,6 +166,9 @@ export interface NavState {
   canGoBack: boolean
   canGoForward: boolean
   title: string
+  /** Fresh new tab still on the new-tab home page: the address bar shows empty
+   *  + focused so you can type a destination (Chrome-style). */
+  blank: boolean
 }
 
 /** One open tab as shown in the tab strip. */
