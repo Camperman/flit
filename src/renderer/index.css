@@ -1031,6 +1031,11 @@ body {
   cursor: default;
 }
 
+/* Store outlet sits left in the actions row, away from Done. */
+.extcat__browse {
+  margin-right: auto;
+}
+
 .topbar__puzzle svg {
   display: block;
 }

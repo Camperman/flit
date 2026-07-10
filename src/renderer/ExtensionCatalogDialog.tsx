@@ -92,6 +92,17 @@ export function ExtensionCatalogDialog({
           })}
         </div>
         <div className="modal__actions">
+          <button
+            type="button"
+            className="btn extcat__browse"
+            data-testid="extcat-webstore"
+            onClick={() => {
+              onOpenUrl('https://chromewebstore.google.com/')
+              onClose()
+            }}
+          >
+            Browse Chrome Web Store…
+          </button>
           <button type="button" className="btn" onClick={onClose}>
             Done
           </button>
