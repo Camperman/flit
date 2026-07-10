@@ -1,4 +1,13 @@
-import { BrowserWindow, app, dialog, ipcMain, session, type IpcMainInvokeEvent } from 'electron'
+import {
+  BrowserWindow,
+  Menu,
+  app,
+  dialog,
+  ipcMain,
+  session,
+  type IpcMainInvokeEvent,
+  type MenuItemConstructorOptions
+} from 'electron'
 import type { AccountManager } from './accounts'
 import type { DownloadManager } from './downloads'
 import type { ExtensionManager } from './extensions'
@@ -249,6 +258,47 @@ export function registerIpc(
   ipcMain.handle('extensions:uninstall', (_e, accountId: string, extensionId: string) =>
     extensions.uninstall(accountId, extensionId)
   )
+  ipcMain.handle('extensions:install', (e, accountId: string, extensionId: string) =>
+    extensions.install(accountId, extensionId).then((info) => {
+      winOf(e)?.webContents.send('extensions:changed')
+      return info
+    })
+  )
+  // The puzzle-piece button: a native menu (floats above the web view) with
+  // the active account's installed extensions + entry points to install more.
+  ipcMain.handle('extensions:menu', (e, accountId: string) => {
+    const win = winOf(e)
+    if (!win) return
+    const installed = extensions.list(accountId)
+    const items: MenuItemConstructorOptions[] = installed.map((ext) => ({
+      label: ext.name,
+      submenu: [
+        { label: `v${ext.version}`, enabled: false },
+        {
+          label: 'Uninstall',
+          click: () => {
+            void extensions.uninstall(accountId, ext.id).then(() => {
+              if (!win.isDestroyed()) win.webContents.send('extensions:changed')
+            })
+          }
+        }
+      ]
+    }))
+    if (installed.length > 0) items.push({ type: 'separator' })
+    items.push(
+      {
+        label: 'Install Extensions…',
+        click: () => {
+          if (!win.isDestroyed()) win.webContents.send('extensions:open-catalog')
+        }
+      },
+      {
+        label: 'Open Chrome Web Store',
+        click: () => accounts.openBookmark(win, accountId, 'https://chromewebstore.google.com/')
+      }
+    )
+    Menu.buildFromTemplate(items).popup({ window: win })
+  })
 
   // ---- test-only (operate on session partitions directly) ----
   ipcMain.handle('__test:partitions', () => accounts.partitions())

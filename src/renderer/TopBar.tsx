@@ -7,6 +7,8 @@ interface TopBarProps {
   partition?: string
   /** Render the extension toolbar chip (the account has extensions). */
   showActions?: boolean
+  /** Open the puzzle-piece extensions menu for the active account. */
+  onExtensionsMenu: () => void
   onBack: () => void
   onForward: () => void
   onReload: () => void
@@ -21,6 +23,7 @@ export function TopBar({
   nav,
   partition,
   showActions,
+  onExtensionsMenu,
   onBack,
   onForward,
   onReload,
@@ -130,6 +133,18 @@ export function TopBar({
       {partition && showActions && (
         <browser-action-list class="topbar__actions" partition={partition} />
       )}
+      <button
+        type="button"
+        className="topbar__btn topbar__puzzle"
+        title="Extensions"
+        data-testid="extensions-menu"
+        disabled={!nav}
+        onClick={onExtensionsMenu}
+      >
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M14 7 h2 a2 2 0 0 1 2 2 v2 h1.5 a1.5 1.5 0 0 1 0 3 H18 v3 a2 2 0 0 1 -2 2 h-3 v-1.5 a1.5 1.5 0 0 0 -3 0 V19 H7 a2 2 0 0 1 -2 -2 v-3 H3.5 a1.5 1.5 0 0 1 0 -3 H5 V9 a2 2 0 0 1 2 -2 h2 V5.5 a1.5 1.5 0 0 1 3 0 Z" />
+        </svg>
+      </button>
       {children}
     </div>
   )

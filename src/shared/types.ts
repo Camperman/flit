@@ -356,6 +356,14 @@ export interface FlitApi {
   /** Chrome extensions installed in an account's partition. */
   listExtensions(accountId: string): Promise<ExtensionInfo[]>
   uninstallExtension(accountId: string, extensionId: string): Promise<void>
+  /** Install a Chrome Web Store extension by id (quick-install catalog). */
+  installExtension(accountId: string, extensionId: string): Promise<ExtensionInfo>
+  /** Open the native puzzle-piece menu for the account's extensions. */
+  showExtensionsMenu(accountId: string): Promise<void>
+  /** Fired after an install/uninstall — refresh extension-dependent UI. */
+  onExtensionsChanged(cb: () => void): () => void
+  /** The native menu asked the renderer to open the install catalog. */
+  onOpenExtensionCatalog(cb: () => void): () => void
   /** All downloads this session (active first, newest first). */
   getDownloads(): Promise<DownloadInfo[]>
   /** Subscribe to the download list changing. Returns an unsubscribe fn. */

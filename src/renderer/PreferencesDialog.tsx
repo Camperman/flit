@@ -18,6 +18,8 @@ interface PreferencesDialogProps {
   accounts: AccountSummary[]
   activeAccountId?: string
   onClose: () => void
+  /** Open the quick-install extension catalog (closes Preferences). */
+  onOpenExtensionCatalog: () => void
 }
 
 type Section = 'general' | 'extensions' | 'downloads'
@@ -42,7 +44,8 @@ export function PreferencesDialog({
   dark,
   accounts,
   activeAccountId,
-  onClose
+  onClose,
+  onOpenExtensionCatalog
 }: PreferencesDialogProps): JSX.Element {
   const [section, setSection] = useState<Section>('general')
   const [isDefault, setIsDefault] = useState(false)
@@ -293,17 +296,28 @@ export function PreferencesDialog({
                   ))}
                 </ul>
               )}
-              <button
-                type="button"
-                className="btn"
-                disabled={!extAccount}
-                onClick={() => {
-                  if (extAccount) void window.flit.openBookmark(extAccount, WEB_STORE_URL)
-                  onClose()
-                }}
-              >
-                Open Chrome Web Store…
-              </button>
+              <div className="prefs__btnrow">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="open-ext-catalog"
+                  disabled={!extAccount}
+                  onClick={onOpenExtensionCatalog}
+                >
+                  Install Popular Extensions…
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!extAccount}
+                  onClick={() => {
+                    if (extAccount) void window.flit.openBookmark(extAccount, WEB_STORE_URL)
+                    onClose()
+                  }}
+                >
+                  Open Chrome Web Store…
+                </button>
+              </div>
             </>
           )}
 

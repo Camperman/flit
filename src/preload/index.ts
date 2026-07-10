@@ -216,6 +216,19 @@ const api: FlitApi = {
   listExtensions: (accountId) => ipcRenderer.invoke('extensions:list', accountId),
   uninstallExtension: (accountId, extensionId) =>
     ipcRenderer.invoke('extensions:uninstall', accountId, extensionId),
+  installExtension: (accountId, extensionId) =>
+    ipcRenderer.invoke('extensions:install', accountId, extensionId),
+  showExtensionsMenu: (accountId) => ipcRenderer.invoke('extensions:menu', accountId),
+  onExtensionsChanged: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('extensions:changed', listener)
+    return () => ipcRenderer.removeListener('extensions:changed', listener)
+  },
+  onOpenExtensionCatalog: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('extensions:open-catalog', listener)
+    return () => ipcRenderer.removeListener('extensions:open-catalog', listener)
+  },
   getDownloads: () => ipcRenderer.invoke('downloads:list'),
   onDownloadsState: (cb) => {
     const listener = (_event: unknown, downloads: DownloadInfo[]): void => cb(downloads)

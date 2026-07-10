@@ -1,7 +1,7 @@
 import { BrowserWindow, app, session, type Session, type WebContents } from 'electron'
 import { join } from 'path'
 import { ElectronChromeExtensions } from 'electron-chrome-extensions'
-import { installChromeWebStore, uninstallExtension } from 'electron-chrome-web-store'
+import { installChromeWebStore, installExtension, uninstallExtension } from 'electron-chrome-web-store'
 import { partitionFor } from './accounts'
 import type { ExtensionInfo } from '../shared/types'
 
@@ -82,6 +82,17 @@ export class ExtensionManager {
       .getAllExtensions()
       .map((e) => ({ id: e.id, name: e.name, version: e.version }))
       .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /** Install a Web Store extension into one account's partition by id
+   *  (the quick-install catalog; same path the store's own button uses). */
+  async install(accountId: string, extensionId: string): Promise<ExtensionInfo> {
+    const ses = session.fromPartition(partitionFor(accountId))
+    const ext = await installExtension(extensionId, {
+      session: ses,
+      extensionsPath: join(app.getPath('userData'), 'Extensions', accountId)
+    })
+    return { id: ext.id, name: ext.name, version: ext.version }
   }
 
   /** Uninstall an extension from one account's partition. */

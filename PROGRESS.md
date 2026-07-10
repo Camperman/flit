@@ -394,6 +394,25 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Extensions menu (puzzle piece) + quick-install catalog.**
+  Chrome-parity extension management: (1) a **puzzle-piece button** in the top
+  bar (always visible, right of the extension actions) opens a **native menu**
+  — installed extensions for the active account (version + Uninstall each),
+  "Install Extensions…", and "Open Chrome Web Store" (opens as a tab). Native
+  menu because DOM would paint under the WebContentsView. (2) An **extension
+  catalog dialog** — 14 curated, known-good extensions (uBlock Origin Lite,
+  Dark Reader, Bitwarden, 1Password, Grammarly, Privacy Badger, Honey,
+  Momentum, Notion Clipper, Loom, JSON Formatter, React/Vue DevTools,
+  Wappalyzer; every ID verified against live Web Store slugs) with one-click
+  install via `electron-chrome-web-store`'s `installExtension` — the same
+  code path as the store's own button, per-account. Reachable from the puzzle
+  menu and Preferences → Extensions → "Install Popular Extensions…".
+  `extensions:changed` push keeps the toolbar chip (`hasExtensions`) live —
+  no restart needed for the browser-action to appear. Verified end-to-end:
+  real install of uBlock Origin Lite from the live store into a test profile
+  (listed at v2026.705.2152, red shield appeared in the toolbar immediately).
+  guard + build + smoke (×2) + isolation pass. Manual check: puzzle menu
+  → uninstall an extension; install Bitwarden and confirm autofill.
 - **Release — ✅ v0.7.8: bundle ID com.bcamp.flit → com.gottaplaygames.flit.**
   Switched before registering the App ID + submitting the passkeys entitlement
   request (the grant attaches to the identifier, so this was the last cheap

@@ -8,6 +8,7 @@ import { ChromeImportDialog } from './ChromeImportDialog'
 import { AccountDialog, type DialogValues } from './AccountDialog'
 import { ShortcutDialog, type ShortcutValues } from './ShortcutDialog'
 import { Downloads } from './Downloads'
+import { ExtensionCatalogDialog } from './ExtensionCatalogDialog'
 import { FindBar } from './FindBar'
 import { HistoryDialog } from './HistoryDialog'
 import { Palette } from './Palette'
@@ -63,6 +64,7 @@ export function App(): JSX.Element {
   const [prefsState, setPrefsState] = useState<PrefsState | null>(null)
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [hasExtensions, setHasExtensions] = useState(false)
+  const [extCatalogOpen, setExtCatalogOpen] = useState(false)
   const [findOpen, setFindOpen] = useState(false)
   const [targetUrl, setTargetUrl] = useState('')
   const [bookmarkDialog, setBookmarkDialog] = useState<BookmarkDialogState | null>(null)
@@ -147,7 +149,9 @@ export function App(): JSX.Element {
     const offEditShortcut = window.flit.onEditShortcut(({ shortcutId }) =>
       openEditShortcut(shortcutId)
     )
+    const offExtCatalog = window.flit.onOpenExtensionCatalog(() => setExtCatalogOpen(true))
     return () => {
+      offExtCatalog()
       offActive()
       offNav()
       offUnread()
@@ -188,6 +192,11 @@ export function App(): JSX.Element {
     void window.flit.getTabs(activeId).then(setTabs)
     void window.flit.getBookmarks(activeId).then(setBookmarks)
     void window.flit.listExtensions(activeId).then((list) => setHasExtensions(list.length > 0))
+    // Installs/uninstalls (catalog or puzzle menu) → refresh the toolbar chip.
+    const offExtChanged = window.flit.onExtensionsChanged(() => {
+      void window.flit.listExtensions(activeId).then((list) => setHasExtensions(list.length > 0))
+    })
+    return offExtChanged
   }, [activeId])
 
   // Prefs dialog can install/uninstall extensions — refresh on close.
@@ -211,7 +220,8 @@ export function App(): JSX.Element {
           prefsOpen ||
           historyOpen ||
           welcomeOpen ||
-          paletteOpen
+          paletteOpen ||
+          extCatalogOpen
       )
     )
   }, [
@@ -223,7 +233,8 @@ export function App(): JSX.Element {
     prefsOpen,
     historyOpen,
     welcomeOpen,
-    paletteOpen
+    paletteOpen,
+    extCatalogOpen
   ])
 
   // Theme: main owns resolution (nativeTheme + appearance pref) and pushes the
@@ -386,6 +397,9 @@ export function App(): JSX.Element {
                 : undefined
             }
             showActions={hasExtensions}
+            onExtensionsMenu={() => {
+              if (activeId) void window.flit.showExtensionsMenu(activeId)
+            }}
             onBack={() => void window.flit.goBack()}
             onForward={() => void window.flit.goForward()}
             onReload={() => void window.flit.reload()}
@@ -468,6 +482,15 @@ export function App(): JSX.Element {
         />
       )}
 
+      {extCatalogOpen && activeId && (
+        <ExtensionCatalogDialog
+          accountId={activeId}
+          accountLabel={accounts.find((a) => a.id === activeId)?.label ?? ''}
+          onOpenUrl={(url) => void window.flit.openBookmark(activeId, url)}
+          onClose={() => setExtCatalogOpen(false)}
+        />
+      )}
+
       {paletteOpen && (
         <Palette
           accounts={accounts.filter((a) => !a.ephemeral)}
@@ -508,6 +531,10 @@ export function App(): JSX.Element {
           accounts={accounts}
           activeAccountId={activeId}
           onClose={() => setPrefsOpen(false)}
+          onOpenExtensionCatalog={() => {
+            setPrefsOpen(false)
+            setExtCatalogOpen(true)
+          }}
         />
       )}
 
