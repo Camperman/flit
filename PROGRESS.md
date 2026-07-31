@@ -394,6 +394,19 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Fix — ✅ Closing the last tab lands on the first rail app, not a random
+  app tab.** `closeTab`'s successor was the positional neighbour in the raw
+  tabs array — which includes app tabs — so closing your last strip tab
+  dumped you on whatever app tab sat adjacent (for Brandon: Passwords, last
+  in the rail). New order: (1) nearest remaining **strip** tab (app tabs no
+  longer join the lottery); (2) strip empty → the **first app in rail
+  order** (opened lazily if needed, skipping the app just closed) — the rail
+  is drag-reorderable, so slot #1 doubles as the user-selectable default
+  (Mail out of the box, no new preference UI); (3) no shortcuts at all →
+  blank new tab with the address bar focused. Verified: strip-close with
+  Passwords open → lands on Mail; closing the active Passwords app tab →
+  Mail (not resurrected); empty-preset account → blank:true new tab. guard +
+  build + smoke (×2) + isolation pass.
 - **Fix — ✅ New-tab focus guard: event-driven, beats focus-stealing pages.**
   The timed reclaim (load + one 300ms retry) lost to Gemini's hydration —
   keystrokes meant for the address bar landed in the page's input. Replaced

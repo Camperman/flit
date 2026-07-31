@@ -1193,8 +1193,39 @@ export class AccountManager implements ExtensionTabDelegate {
     if (view) this.destroyView(ws, view)
     wa.tabs.splice(index, 1)
     if (wa.activeTabId === tabId) {
-      const neighbour = wa.tabs[index] ?? wa.tabs[index - 1]
-      wa.activeTabId = neighbour?.id
+      // Prefer the nearest remaining strip tab — app tabs are workspace
+      // fixtures, not part of the strip's closing order (picking a raw
+      // neighbour used to land users on whatever app tab happened to sit
+      // next in the array, e.g. Passwords).
+      const after = wa.tabs.slice(index).find((t) => !t.originShortcutId)
+      const before = wa.tabs
+        .slice(0, index)
+        .reverse()
+        .find((t) => !t.originShortcutId)
+      const strip = after ?? before
+      if (strip) {
+        wa.activeTabId = strip.id
+      } else {
+        // Strip is empty → land on the first app in the rail (the rail is
+        // drag-reorderable, so its first slot doubles as the user's chosen
+        // default — Mail out of the box), skipping the app just closed.
+        const meta = this.accounts.get(accountId)
+        const target = meta?.shortcuts.find((s) => s.id !== closing.originShortcutId)
+        if (target) {
+          const existing = wa.tabs.find((t) => t.originShortcutId === target.id)
+          wa.activeTabId = existing
+            ? existing.id
+            : this.openTab(ws, accountId, target.url, target.id).id
+        } else if (wa.tabs.length > 0) {
+          wa.activeTabId = wa.tabs[wa.tabs.length - 1].id
+        } else {
+          // No apps at all (empty-preset account): blank new tab, cursor in
+          // the address bar.
+          const tab = this.openTab(ws, accountId, this.newTabUrl)
+          tab.blank = true
+          wa.activeTabId = tab.id
+        }
+      }
     }
     this.afterTabChange(ws, accountId)
   }
