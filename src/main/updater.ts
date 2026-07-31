@@ -25,9 +25,63 @@ export function getUpdateState(): UpdateState {
   return lastState
 }
 
-/** Restart and install a downloaded update (the in-app "Restart" affordance). */
+/**
+ * True when macOS is running us from a Gatekeeper App Translocation mount —
+ * i.e. launched straight from a DMG / still-quarantined download instead of
+ * from /Applications. The bundle path is a read-only randomized temp mount, so
+ * Squirrel can never replace it: quitAndInstall() silently does nothing. Detect
+ * it and say so rather than offering a button that cannot work.
+ */
+export function isTranslocated(): boolean {
+  return app.getPath('exe').includes('/AppTranslocation/')
+}
+
+function warnTranslocated(): void {
+  void dialog.showMessageBox({
+    type: 'warning',
+    message: 'Move Flit to your Applications folder to update',
+    detail:
+      'Flit is running from a temporary read-only location, which macOS uses when an app is opened directly from a disk image or download. Updates can’t install from here.\n\nQuit Flit, drag Flit.app into Applications, then launch it from there.',
+    buttons: ['OK']
+  })
+}
+
+/**
+ * Restart and install a downloaded update (the in-app "Restart" affordance and
+ * the native prompt's "Restart Now"). Reports failures instead of dying quiet:
+ * translocation is explained up front, quitAndInstall throwing is surfaced, and
+ * a watchdog catches the case where it neither throws nor quits.
+ */
 export function restartToUpdate(): void {
-  autoUpdater.quitAndInstall()
+  if (!app.isPackaged) return // nothing to install in dev
+  if (isTranslocated()) {
+    warnTranslocated()
+    return
+  }
+  try {
+    autoUpdater.quitAndInstall()
+  } catch (error) {
+    void dialog.showMessageBox({
+      type: 'warning',
+      message: 'Couldn’t restart to install the update',
+      detail: `${error instanceof Error ? error.message : error}\n\nThe update will install the next time you quit Flit.`
+    })
+    return
+  }
+  // quitAndInstall hands off to Squirrel asynchronously and can fail without
+  // throwing (unwritable bundle, signature mismatch). If we're still alive a
+  // few seconds later, the handoff didn't take — say so.
+  setTimeout(() => {
+    if (app.isPackaged && BrowserWindow.getAllWindows().length > 0) {
+      void dialog.showMessageBox({
+        type: 'warning',
+        message: 'The update couldn’t be installed automatically',
+        detail:
+          'Flit is still running, so macOS blocked the in-place update. Install the latest DMG from the Releases page instead — your accounts and settings are untouched.',
+        buttons: ['OK']
+      })
+    }
+  }, 5000)
 }
 
 /** Menu / Preferences "Check for Updates…": same updater, but with answers —
@@ -40,6 +94,12 @@ export async function checkForUpdatesInteractive(): Promise<void> {
       message: 'Updates are available only in the installed app',
       detail: `This is a development build (v${app.getVersion()}).`
     })
+    return
+  }
+  // Running from a DMG / quarantined download → in-place updates are
+  // impossible; explain instead of downloading something we can't install.
+  if (isTranslocated()) {
+    warnTranslocated()
     return
   }
   // Already downloaded and waiting? Offer the restart straight away.
@@ -80,6 +140,9 @@ export async function checkForUpdatesInteractive(): Promise<void> {
 }
 
 let prompted = false
+// An update finished downloading, so any later error is an install/restart
+// failure the user is actively waiting on — never swallow those.
+let downloaded = false
 function promptRestart(version?: string): void {
   void dialog
     .showMessageBox({
@@ -91,7 +154,9 @@ function promptRestart(version?: string): void {
       cancelId: 1
     })
     .then(({ response }) => {
-      if (response === 0) autoUpdater.quitAndInstall()
+      // Route through restartToUpdate so the translocation check, throw
+      // handling, and did-it-actually-quit watchdog apply here too.
+      if (response === 0) restartToUpdate()
       // "Later" → installs automatically on next quit.
     })
 }
@@ -119,6 +184,7 @@ export function startAutoUpdate(): void {
 
   autoUpdater.on('update-downloaded', (info) => {
     interactive = false
+    downloaded = true
     broadcast({ status: 'ready', version: info.version })
     if (prompted) return
     prompted = true
@@ -126,15 +192,24 @@ export function startAutoUpdate(): void {
   })
 
   autoUpdater.on('error', (err) => {
-    broadcast({ status: interactive ? 'error' : 'idle', message: `${err?.message ?? err}` })
-    if (interactive) {
-      interactive = false
-      void dialog.showMessageBox({
-        type: 'warning',
-        message: 'Update failed',
-        detail: `${err?.message ?? err}`
-      })
-    }
+    // Surface when the user is waiting on us: an explicit check (interactive)
+    // OR anything that goes wrong once an update is downloaded — that's the
+    // install/restart path failing, which used to die silently and look like a
+    // dead button. Only pre-download background failures stay quiet (expected
+    // on unsigned local builds and before a release has artifacts).
+    const loud = interactive || downloaded
+    broadcast({ status: loud ? 'error' : 'idle', message: `${err?.message ?? err}` })
+    if (!loud) return
+    interactive = false
+    void dialog.showMessageBox({
+      type: 'warning',
+      message: downloaded ? 'Couldn’t install the update' : 'Update failed',
+      detail: `${err?.message ?? err}${
+        downloaded
+          ? '\n\nYou can install the latest DMG from the Releases page instead — your accounts and settings are untouched.'
+          : ''
+      }`
+    })
   })
 
   const check = (): void => {

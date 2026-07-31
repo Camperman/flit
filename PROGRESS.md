@@ -394,6 +394,31 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Fix — ✅ Update restart: detect App Translocation + stop swallowing install
+  failures.** Reported symptom: "Install and restart" did nothing. Diagnosed
+  from evidence, not guesswork — `ps` showed the running app executing from
+  `/private/var/folders/.../T/AppTranslocation/<uuid>/d/Flit.app`, i.e. macOS
+  **Gatekeeper App Translocation** (app opened straight from the DMG /
+  still-quarantined download runs on a read-only randomized mount).
+  `/Applications/Flit.app` was still 0.7.10 and there was **no new ShipIt
+  activity** — Squirrel can't replace a bundle it can't write, so
+  `quitAndInstall()` no-ops. The last real ShipIt run (Jul 10 11:30, logged
+  "Installation completed successfully") was the 0.7.9→0.7.10 update of the
+  copy in /Applications, confirming auto-update is fine when installed
+  properly. **Not a Flit bug — but three real gaps closed:** (1)
+  `isTranslocated()` (`app.getPath('exe')` contains `/AppTranslocation/`) now
+  short-circuits both the restart and the interactive check with a dialog
+  telling the user to move Flit to Applications; (2) `restartToUpdate` wraps
+  `quitAndInstall` in try/catch **and** a 5s watchdog — if we neither threw nor
+  quit, say so and point at the DMG; (3) the `error` handler no longer goes
+  quiet after a download completes (new `downloaded` flag joins `interactive`
+  in the "loud" condition) — install/restart failures were previously
+  swallowed, which is exactly what made the button look dead. The native
+  "Restart Now" prompt now routes through `restartToUpdate` so it inherits all
+  three. Dev builds no-op instead of dialoguing. Verified: predicate true for
+  the real translocated path, false for /Applications + dev + local dist (no
+  false positives); in-app probe confirms no false positive and a clean dev
+  no-op. guard + build + smoke (×2) + isolation pass.
 - **Fix — ✅ Closing the last tab lands on the first rail app, not a random
   app tab.** `closeTab`'s successor was the positional neighbour in the raw
   tabs array — which includes app tabs — so closing your last strip tab
