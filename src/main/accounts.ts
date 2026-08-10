@@ -224,6 +224,10 @@ interface Tab {
 interface WindowAccount {
   tabs: Tab[]
   activeTabId?: string
+  /** Tab ids most-recently-active first (apps included). Closing the active
+   *  tab returns to the top surviving entry, so a tab spawned from Calendar
+   *  hands focus back to Calendar. Recorded in afterTabChange. */
+  mru: string[]
   unreadByApp: Record<string, number>
 }
 
@@ -755,7 +759,7 @@ export class AccountManager implements ExtensionTabDelegate {
   private accountState(ws: WindowState, accountId: string): WindowAccount {
     let wa = ws.perAccount.get(accountId)
     if (!wa) {
-      wa = { tabs: [], activeTabId: undefined, unreadByApp: {} }
+      wa = { tabs: [], activeTabId: undefined, mru: [], unreadByApp: {} }
       ws.perAccount.set(accountId, wa)
     }
     return wa
@@ -1192,18 +1196,22 @@ export class AccountManager implements ExtensionTabDelegate {
     const view = closing.view
     if (view) this.destroyView(ws, view)
     wa.tabs.splice(index, 1)
+    wa.mru = wa.mru.filter((id) => id !== tabId)
     if (wa.activeTabId === tabId) {
-      // Prefer the nearest remaining strip tab — app tabs are workspace
-      // fixtures, not part of the strip's closing order (picking a raw
-      // neighbour used to land users on whatever app tab happened to sit
-      // next in the array, e.g. Passwords).
+      // Go back where you came from: the most recently active surviving tab,
+      // apps included. Closing a tab spawned off Calendar returns to Calendar.
+      const recent = wa.mru.find((id) => wa.tabs.some((t) => t.id === id))
+      // Fallbacks (no history yet — e.g. restored session): nearest remaining
+      // strip tab, since app tabs aren't part of the strip's closing order.
       const after = wa.tabs.slice(index).find((t) => !t.originShortcutId)
       const before = wa.tabs
         .slice(0, index)
         .reverse()
         .find((t) => !t.originShortcutId)
       const strip = after ?? before
-      if (strip) {
+      if (recent) {
+        wa.activeTabId = recent
+      } else if (strip) {
         wa.activeTabId = strip.id
       } else {
         // Strip is empty → land on the first app in the rail (the rail is
@@ -1391,6 +1399,12 @@ export class AccountManager implements ExtensionTabDelegate {
   }
 
   private afterTabChange(ws: WindowState, accountId: string): void {
+    // Every activation path funnels through here, so this is where the
+    // most-recently-used order is recorded (front = current).
+    const wa = this.accountState(ws, accountId)
+    if (wa.activeTabId) {
+      wa.mru = [wa.activeTabId, ...wa.mru.filter((id) => id !== wa.activeTabId)].slice(0, 50)
+    }
     if (ws.activeAccountId === accountId) {
       this.refreshVisibility(ws)
       this.layout(ws)

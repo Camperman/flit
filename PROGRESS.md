@@ -394,6 +394,23 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Closing a tab returns to the last active app (MRU succession).**
+  Requested case: on Calendar, click a meeting invite → opens a tab → close it
+  → should land back on **Calendar**. Positional succession (even the
+  strip-aware version from the previous entry) couldn't express that. Added a
+  per-window-per-account **MRU stack** (`WindowAccount.mru`, tab ids
+  most-recent-first, apps included, capped 50) recorded in `afterTabChange` —
+  the single funnel every one of the 18 `activeTabId` assignments already
+  passes through, so no call-site churn. `closeTab` prunes the closed id and
+  prefers the top surviving MRU entry; the earlier rules stay as fallbacks for
+  no-history cases (restored sessions): nearest remaining strip tab → first app
+  in rail order → blank new tab. This subsumes the Passwords bug properly —
+  you now land where you actually were, not where the array happened to point.
+  Verified: Calendar→tab→close ⇒ Calendar; Mail→Calendar→tab→close ⇒ Calendar
+  (not Mail); the discriminating case (tabs A+C, re-activate A, spawn B, close
+  B) ⇒ **A**, where positional would have picked C; empty-preset account still
+  falls through to a blank focused tab. guard + build + smoke (×2) + isolation
+  pass.
 - **Fix — ✅ Update restart: detect App Translocation + stop swallowing install
   failures.** Reported symptom: "Install and restart" did nothing. Diagnosed
   from evidence, not guesswork — `ps` showed the running app executing from
