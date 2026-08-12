@@ -18,11 +18,24 @@ import { join } from 'node:path'
 const DIST = join(process.cwd(), 'dist')
 const profile = process.env.APPLE_KEYCHAIN_PROFILE || 'flit'
 
-const dmg = readdirSync(DIST).find((f) => f.endsWith('.dmg'))
-if (!dmg) {
-  console.error('staple-dmg: no .dmg found in dist/')
+// Match the DMG for THIS version explicitly. Taking the first *.dmg silently
+// stapled a stale DMG left over from a previous release (v0.7.12 build picked
+// up v0.7.11's), shipping the new DMG unstapled.
+const { version } = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'))
+const candidates = readdirSync(DIST).filter((f) => f.endsWith('.dmg') && f.includes(version))
+if (candidates.length === 0) {
+  const others = readdirSync(DIST).filter((f) => f.endsWith('.dmg'))
+  console.error(
+    `staple-dmg: no .dmg for version ${version} in dist/` +
+      (others.length ? ` (found: ${others.join(', ')})` : '')
+  )
   process.exit(1)
 }
+if (candidates.length > 1) {
+  console.error(`staple-dmg: ambiguous DMGs for ${version}: ${candidates.join(', ')}`)
+  process.exit(1)
+}
+const dmg = candidates[0]
 const dmgPath = join(DIST, dmg)
 
 console.log(`staple-dmg: notarizing ${dmg} …`)
