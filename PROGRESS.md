@@ -394,6 +394,22 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ "Cached data" in Preferences → General (size + Clear now).**
+  Brandon's profile had grown to **4.1 GB**; measured breakdown: `Partitions`
+  3.8 GB, of which `Cache` + `Code Cache` dominate every partition (~118 MB in
+  one account alone) while `Cookies` is 40 KB — so clearing caches provably
+  cannot sign anyone out. New row shows total cached bytes across all accounts
+  and clears on demand. Main: `cachedDataSize()` sums the cache dirs (`Cache`,
+  `Code Cache`, `GPUCache`, `DawnWebGPUCache`, `DawnGraphiteCache`,
+  `Shared Dictionary`) across `userData` + every `Partitions/*` via **`du -sk`**
+  (walking ~4 GB of small files in JS would block main for seconds);
+  `clearCachedData()` calls `clearCache()` + `clearCodeCaches()` on every
+  account session and returns bytes freed (measured before/after).
+  **Deliberately does not touch** cookies, local storage, IndexedDB or
+  service-worker registrations — pages just refetch. Verified end-to-end on a
+  profile with real browsing: 2.8 MB → freed 1.0 MB → 1.9 MB, and a probe
+  cookie survived the clear (1 before, 1 after). guard + build + smoke (×2) +
+  isolation pass.
 - **Polish — ✅ Reclaim the update download cache (~200 MB) on next launch.**
   electron-updater leaves the downloaded zip in
   `~/Library/Caches/flit-updater/pending/` plus its `update.zip` staging copy

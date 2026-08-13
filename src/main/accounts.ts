@@ -12,7 +12,8 @@ import {
 } from 'electron'
 import { randomUUID } from 'crypto'
 import { execFile } from 'child_process'
-import { existsSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
+import { join } from 'path'
 import { homedir } from 'os'
 import type {
   AccountPatch,
@@ -689,6 +690,78 @@ export class AccountManager implements ExtensionTabDelegate {
   clearSitePermissions(): void {
     for (const meta of this.accounts.values()) meta.sitePermissions = undefined
     this.onState?.()
+  }
+
+  // ---- cached data (per-account Chromium caches) ------------------------
+
+  /** Cache directories Chromium keeps inside each partition (and in the app's
+   *  own session). Content only — Cookies/Local Storage/IndexedDB hold the
+   *  logins and are never touched. */
+  private static readonly CACHE_DIRS = [
+    'Cache',
+    'Code Cache',
+    'GPUCache',
+    'DawnWebGPUCache',
+    'DawnGraphiteCache',
+    'Shared Dictionary'
+  ]
+
+  /** Every cache directory on disk: per-partition plus the top-level session. */
+  private cacheDirPaths(): string[] {
+    const root = app.getPath('userData')
+    const roots = [root]
+    const partitions = join(root, 'Partitions')
+    if (existsSync(partitions)) {
+      for (const name of readdirSync(partitions)) roots.push(join(partitions, name))
+    }
+    const out: string[] = []
+    for (const base of roots) {
+      for (const dir of AccountManager.CACHE_DIRS) {
+        const path = join(base, dir)
+        if (existsSync(path)) out.push(path)
+      }
+    }
+    return out
+  }
+
+  /** Total bytes of cached data. Uses `du` — walking ~4 GB of small files in
+   *  JS would block the main process for seconds. */
+  async cachedDataSize(): Promise<number> {
+    const paths = this.cacheDirPaths()
+    if (paths.length === 0) return 0
+    return new Promise((resolve) => {
+      execFile('du', ['-sk', ...paths], { maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
+        if (err && !stdout) return resolve(0)
+        let kb = 0
+        for (const line of stdout.split('\n')) {
+          const n = Number.parseInt(line, 10)
+          if (Number.isFinite(n)) kb += n
+        }
+        resolve(kb * 1024)
+      })
+    })
+  }
+
+  /**
+   * Clear every account's HTTP + code caches. Deliberately does NOT touch
+   * cookies, local storage, IndexedDB or service-worker registrations, so no
+   * account is signed out and no site data is lost — pages just refetch.
+   * Returns bytes freed (measured before/after).
+   */
+  async clearCachedData(): Promise<number> {
+    const before = await this.cachedDataSize()
+    const sessions = new Set<Electron.Session>([session.defaultSession])
+    for (const id of this.accounts.keys()) sessions.add(session.fromPartition(partitionFor(id)))
+    for (const ses of sessions) {
+      try {
+        await ses.clearCache()
+        await ses.clearCodeCaches({ urls: [] })
+      } catch {
+        // One failing partition shouldn't abort the rest.
+      }
+    }
+    const after = await this.cachedDataSize()
+    return Math.max(0, before - after)
   }
 
   // ---- window lifecycle -------------------------------------------------

@@ -359,6 +359,11 @@ export interface FlitApi {
   onPrefsChanged(cb: (state: PrefsState) => void): () => void
   /** Forget every remembered site-permission answer (all accounts). */
   resetSitePermissions(): Promise<void>
+  /** Total bytes of Chromium cached data across all accounts. */
+  getCachedDataSize(): Promise<number>
+  /** Clear every account's HTTP + code caches (never touches logins).
+   *  Resolves with the number of bytes freed. */
+  clearCachedData(): Promise<number>
   /** Native folder picker for the downloads location ('' if cancelled). */
   chooseDownloadsDir(): Promise<string>
   /** Is Flit the macOS default browser right now? */

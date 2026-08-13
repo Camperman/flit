@@ -38,6 +38,13 @@ const SEARCH_ENGINES: Array<{ id: SearchEngine; label: string }> = [
 
 const WEB_STORE_URL = 'https://chromewebstore.google.com/'
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
+  if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${bytes} B`
+}
+
 export function PreferencesDialog({
   prefs,
   layout,
@@ -53,12 +60,16 @@ export function PreferencesDialog({
   const [extensions, setExtensions] = useState<ExtensionInfo[]>([])
   const [newTabDraft, setNewTabDraft] = useState(prefs.newTabUrl)
   const [version, setVersion] = useState('')
+  const [cacheSize, setCacheSize] = useState<number | null>(null)
+  const [clearing, setClearing] = useState(false)
+  const [freed, setFreed] = useState<number | null>(null)
 
   const patch = (p: Partial<Prefs>): void => void window.flit.setPrefs(p)
 
   useEffect(() => {
     void window.flit.isDefaultBrowser().then(setIsDefault)
     void window.flit.getAppVersion().then(setVersion)
+    void window.flit.getCachedDataSize().then(setCacheSize)
   }, [])
 
   useEffect(() => {
@@ -216,6 +227,42 @@ export function PreferencesDialog({
                   onClick={() => void window.flit.resetSitePermissions()}
                 >
                   Reset remembered answers
+                </button>
+              </div>
+
+              <div className="prefs__row">
+                <label htmlFor="pref-clear-cache">
+                  Cached data
+                  <span className="prefs__sublabel">
+                    {clearing
+                      ? 'Clearing…'
+                      : freed !== null
+                        ? `Freed ${formatBytes(freed)} — you stay signed in`
+                        : cacheSize === null
+                          ? 'Measuring…'
+                          : `${formatBytes(cacheSize)} across all accounts`}
+                  </span>
+                </label>
+                <button
+                  id="pref-clear-cache"
+                  type="button"
+                  className="btn"
+                  data-testid="clear-cache"
+                  disabled={clearing || cacheSize === 0}
+                  onClick={() => {
+                    setClearing(true)
+                    setFreed(null)
+                    void window.flit
+                      .clearCachedData()
+                      .then((bytes) => {
+                        setFreed(bytes)
+                        return window.flit.getCachedDataSize()
+                      })
+                      .then(setCacheSize)
+                      .finally(() => setClearing(false))
+                  }}
+                >
+                  Clear now
                 </button>
               </div>
 
