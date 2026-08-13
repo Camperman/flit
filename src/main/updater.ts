@@ -1,8 +1,76 @@
 import { BrowserWindow, app, dialog } from 'electron'
 import { autoUpdater } from 'electron-updater'
+import { existsSync, readFileSync, readdirSync, rmSync, statSync } from 'fs'
+import { join } from 'path'
 import type { UpdateState } from '../shared/types'
 
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
+
+/** >0 when a is newer than b, 0 when equal, <0 when older. Non-numeric or
+ *  missing parts compare as 0, which is fine for our own x.y.z tags. */
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.')
+  const pb = b.split('.')
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = Number.parseInt(pa[i] ?? '0', 10) || 0
+    const nb = Number.parseInt(pb[i] ?? '0', 10) || 0
+    if (na !== nb) return na - nb
+  }
+  return 0
+}
+
+/**
+ * Reclaim the ~200 MB electron-updater leaves behind after an update installs
+ * (the downloaded zip in `pending/`, plus the `update.zip` staging copy it
+ * feeds to Squirrel). It can't be cleared when the download finishes: on macOS
+ * the install runs *after* we exit, so the zip must survive our quit. The safe
+ * moment is a later launch, once the cached version is no longer newer than
+ * what's running — then it can only be leftovers. Best-effort; never throws.
+ */
+export function cleanupStaleUpdateCache(): void {
+  // Dev builds report Electron's version from getVersion(), which would make
+  // every cached download look stale — and dev never downloads updates anyway,
+  // so there is nothing of ours to clean.
+  if (!app.isPackaged) return
+  try {
+    // macOS-only app; Electron 37 dropped 'cache' from getPath().
+    const cacheRoot = join(app.getPath('home'), 'Library', 'Caches')
+    const dirs = readdirSync(cacheRoot).filter((d) => /^flit-updater$/i.test(d))
+    for (const name of dirs) {
+      const dir = join(cacheRoot, name)
+      const infoPath = join(dir, 'pending', 'update-info.json')
+      if (!existsSync(infoPath)) continue
+      const info = JSON.parse(readFileSync(infoPath, 'utf8')) as { fileName?: string }
+      // No version field in update-info.json — it's in the file name.
+      const cached = /-(\d+\.\d+\.\d+)-/.exec(info.fileName ?? '')?.[1]
+      if (!cached) continue
+      // Newer than us? A download is staged for a future install — leave it.
+      if (compareVersions(cached, app.getVersion()) > 0) continue
+
+      let freed = 0
+      const staging = join(dir, 'update.zip')
+      for (const target of [join(dir, 'pending'), staging]) {
+        if (!existsSync(target)) continue
+        const s = statSync(target)
+        freed += s.isDirectory()
+          ? readdirSync(target).reduce((sum, f) => {
+              try {
+                return sum + statSync(join(target, f)).size
+              } catch {
+                return sum
+              }
+            }, 0)
+          : s.size
+        rmSync(target, { recursive: true, force: true })
+      }
+      if (freed > 0) {
+        console.log(`updater: cleared ${Math.round(freed / 1e6)} MB of stale update cache (v${cached})`)
+      }
+    }
+  } catch {
+    // Cache cleanup is never worth interrupting startup for.
+  }
+}
 
 // True while a user-initiated check/download is in flight, so we surface
 // errors loudly (the automatic background checks stay silent — failures there

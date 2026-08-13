@@ -394,6 +394,22 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Polish — ✅ Reclaim the update download cache (~200 MB) on next launch.**
+  electron-updater leaves the downloaded zip in
+  `~/Library/Caches/flit-updater/pending/` plus its `update.zip` staging copy
+  until the *next* update overwrites them (measured: 200 MB sitting idle after
+  0.7.12 installed). It can't be cleared at download time — on macOS the
+  install runs **after** we exit (Squirrel's helper does the swap), so the zip
+  must survive our quit. `cleanupStaleUpdateCache()` runs at startup instead:
+  parses the version out of `update-info.json`'s `fileName` (that file has no
+  version field), and deletes only when the cached version is **not newer**
+  than the running one — a newer cache is a staged install and is left alone.
+  **Gated on `app.isPackaged`**: in dev `app.getVersion()` returns *Electron's*
+  version (37.10.3, verified by probe), which would mark every cache stale and
+  could delete a real staged update during `npm start`. Best-effort, never
+  throws. Verified against the **packaged** build (both branches): cached
+  0.7.12 with 0.7.12 running → cleared; seeded 9.9.9 → preserved. guard +
+  build + smoke (×2) + isolation pass.
 - **Polish — ✅ Closing a tab returns to the last active app (MRU succession).**
   Requested case: on Calendar, click a meeting invite → opens a tab → close it
   → should land back on **Calendar**. Positional succession (even the

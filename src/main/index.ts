@@ -8,7 +8,7 @@ import { ExtensionManager } from './extensions'
 import { HistoryManager } from './history'
 import { OmniboxManager } from './omnibox'
 import { PrefsManager } from './prefs'
-import { checkForUpdatesInteractive, startAutoUpdate } from './updater'
+import { checkForUpdatesInteractive, cleanupStaleUpdateCache, startAutoUpdate } from './updater'
 import { registerIpc } from './ipc'
 import { buildAppMenu } from './menu'
 import { loadState, saveState, type PersistedState } from './persistence'
@@ -334,6 +334,7 @@ app.whenReady().then(() => {
   })
   installMenu()
   createWindow()
+  cleanupStaleUpdateCache() // reclaim last update's ~200 MB download cache
   startAutoUpdate()
 
   app.on('activate', () => {
