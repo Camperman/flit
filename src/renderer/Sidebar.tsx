@@ -16,6 +16,24 @@ interface SidebarProps {
   children?: ReactNode
 }
 
+// One account's avatar: the profile photo when we have a usable one, falling
+// back to a letter monogram if the image fails to load — otherwise a dead
+// image URL renders as a blank circle with nothing in it.
+function AccountAvatar({ account }: { account: AccountSummary }): JSX.Element {
+  const [failed, setFailed] = useState(false)
+  if (account.ephemeral) return <>{'\u{1F576}'}</>
+  const letter = account.label.trim().charAt(0).toUpperCase() || '?'
+  if (!account.avatarUrl || failed) return <>{letter}</>
+  return (
+    <img
+      className="account__img"
+      src={account.avatarUrl}
+      alt=""
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
 // Left rail of account avatars with unread badges. Click switches; right-click
 // opens edit/remove; drag reorders. In unified layout the app rail is stacked
 // below via `children`.
@@ -87,13 +105,7 @@ export function Sidebar({
                   onContextMenu(account.id)
                 }}
               >
-                {account.ephemeral ? (
-                  '🕶'
-                ) : account.avatarUrl ? (
-                  <img className="account__img" src={account.avatarUrl} alt="" />
-                ) : (
-                  account.label.charAt(0).toUpperCase()
-                )}
+                <AccountAvatar account={account} />
               </button>
               {count > 0 && (
                 <span className="account__badge" data-testid={`badge-${account.id}`}>

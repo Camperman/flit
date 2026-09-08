@@ -302,6 +302,25 @@ const AVATAR_SCRIPT = `(() => {
   return null
 })()`
 
+/**
+ * Is this a real Google profile photo? The avatar scrape can fire while the
+ * page is still loading and pick up Google's placeholder loading-ring asset
+ * (ssl.gstatic.com/gb/images/ring/pr_32px_*.png), which renders as an empty
+ * circle. Real photos (and Google's generated letter monograms) are served
+ * from googleusercontent.com or lh<n>.google.com.
+ */
+export function isProfilePhotoUrl(url: string): boolean {
+  try {
+    const u = new URL(url)
+    if (u.protocol !== 'https:') return false
+    const host = u.hostname
+    if (host.endsWith('gstatic.com')) return false // static/placeholder assets
+    return host.endsWith('googleusercontent.com') || /(^|\.)lh\d+\.google\.com$/.test(host)
+  } catch {
+    return false
+  }
+}
+
 export function partitionFor(id: string): string {
   // No `persist:` prefix → in-memory partition; everything evaporates on quit.
   if (id.startsWith('incognito-')) return id
@@ -541,7 +560,9 @@ export class AccountManager implements ExtensionTabDelegate {
       // removed every app) is respected as-is.
       shortcuts: config.shortcuts ?? defaultShortcuts(),
       bookmarks: config.bookmarks ?? [],
-      avatarUrl: config.avatarUrl,
+      // Drop a previously-scraped placeholder; the next page load re-scrapes.
+      avatarUrl:
+        config.avatarUrl && isProfilePhotoUrl(config.avatarUrl) ? config.avatarUrl : undefined,
       muted: config.muted,
       savedTabs: config.tabs,
       ephemeral: config.ephemeral,
@@ -2157,7 +2178,12 @@ export class AccountManager implements ExtensionTabDelegate {
     wc.executeJavaScript(AVATAR_SCRIPT, true)
       .then((url: unknown) => {
         const meta = this.accounts.get(accountId)
-        if (meta && typeof url === 'string' && url && url !== meta.avatarUrl) {
+        if (
+          meta &&
+          typeof url === 'string' &&
+          isProfilePhotoUrl(url) &&
+          url !== meta.avatarUrl
+        ) {
           meta.avatarUrl = url
           this.broadcastUpdated()
           this.onState?.()

@@ -394,6 +394,26 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   account web view has focus. Copy/paste still work inside the web views.
 
 ## Phase log
+- **Fix — ✅ Blank account avatar (scrape captured Google's placeholder ring).**
+  One profile rendered as an empty circle. Diagnosed from the persisted state:
+  that account's `avatarUrl` was
+  `https://ssl.gstatic.com/gb/images/ring/pr_32px_*.png` — Google's **loading
+  placeholder** (a blue/purple gradient ring on transparency, confirmed by
+  fetching and viewing it), captured because `AVATAR_SCRIPT` can run while the
+  real photo is still loading. It returned HTTP 200, so nothing looked wrong.
+  Three layers of fix: (1) `isProfilePhotoUrl()` gates `extractAvatar` — https
+  only, rejects `*.gstatic.com` (static/placeholder assets), accepts
+  `*.googleusercontent.com` and `lh<n>.google.com` (which covers Google's
+  generated letter monograms, e.g. the working "B" avatar served from
+  `lh3.google.com/u/0/ogw/…`); (2) `addMeta` **drops an already-persisted**
+  placeholder so the next page load re-scrapes — without this the bad value
+  would survive forever; (3) new `AccountAvatar` component adds an
+  **`onError` letter fallback** (plus `'?'` for a blank label), so no dead
+  image URL can ever render as an empty circle again. Verified: URL filter
+  passes 6/6 cases against the real URLs from Brandon's profile; seeded-state
+  test proves the ring account renders **"W"** while an account with a real
+  photo keeps its `<img>`; a broken URL falls back to a letter via onError.
+  guard + build + smoke (×2) + isolation pass.
 - **Polish — ✅ "Cached data" in Preferences → General (size + Clear now).**
   Brandon's profile had grown to **4.1 GB**; measured breakdown: `Partitions`
   3.8 GB, of which `Cache` + `Code Cache` dominate every partition (~118 MB in
