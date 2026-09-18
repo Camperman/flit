@@ -42,8 +42,15 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 34 | Rename: Glide → Flit (app, bundle ID, repo, data migration) | ✅ |
 | 35 | Security hardening + size trim + Chrome-like dark contrast | ✅ |
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
+| 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
 
 ## Next up
+**Phase 38 — Touch ID passkeys — BLOCKED on an Apple provisioning profile.**
+The code is written and waiting on branch `feat/passkey-touchid` (entitlement +
+`app.configureWebAuthn`). It cannot land on master until a **Developer ID
+provisioning profile for `com.gottaplaygames.flit`** exists and is embedded at
+`Contents/embedded.provisionprofile` — see the Phase 37 notes for why.
+
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
 2026-07-08: per-account notification mute (Phase 15), notification click-to-switch
 (Phase 16), Chrome extensions (Phase 17). Already shipped earlier without a phase
@@ -51,6 +58,46 @@ entry: auto-fetched Google avatars, persisted global zoom. **Scroll-position
 restore was investigated and dropped**: views stay alive while the app runs (scroll
 only lost on the 30-min idle discard), and Google apps scroll inner containers, so
 a generic window-scroll restore wouldn't actually restore anything useful.
+
+### Phase 37 notes — Electron 37 → 44 upgrade (2026-09-18)
+Bumped `electron` to ^44.4.3 (Chromium 138.0.7204.251 → 152.0.7977.130, 14 Chrome
+majors of security fixes). **Zero source changes were needed.** Verified: guard,
+typecheck + build, smoke 2/2, isolation 1/1. `electron-chrome-extensions@4.9.0`
+and `electron-chrome-web-store@0.13.0` construct and attach per-account without
+throwing (exercised by driving `addAccount` through the app's own IPC, not just
+by booting); zero renderer errors. `electron-builder@25.1.8` packages Electron 44
+with no tooling bump, and the unsigned `.app` boots.
+
+Not yet done: no release cut. Shipping this to the friends tier is a separate
+decision (bump version → tag → `npm run dist` → notarize/staple → `gh release`).
+Not covered by the automated gates: installing a real CRX from the Web Store,
+real Google sign-in, and day-to-day use on 44.
+
+**Why Phase 38 (passkeys) is blocked.** Electron 41+ added
+`app.configureWebAuthn({ touchID: { keychainAccessGroup, promptReason } })`,
+which turns on the Touch ID / Secure Enclave platform authenticator — per-session
+metadata secrets keep credentials from leaking across `persist:account-<id>`
+partitions. Two things were measured on 2026-09-18:
+1. **Unsigned, the API is a silent no-op** — it accepts the call and
+   `isUserVerifyingPlatformAuthenticatorAvailable()` stays `false`.
+2. **`keychain-access-groups` is provisioning-profile-backed.** Two identical
+   signed Developer ID builds, one variable: WITH the entitlement (and
+   `provisioningProfile=none`) the app is SIGKILLed at launch (exit 137,
+   silently, no crash report — AMFI); WITHOUT it, it launches normally.
+
+Google Chrome ships exactly the target configuration — its
+`Contents/embedded.provisionprofile` is a Developer ID profile
+(`ProvisionsAllDevices: true`) authorizing `keychain-access-groups`,
+`com.apple.application-identifier`, and
+`com.apple.developer.web-browser.public-key-credential`. Flit's App ID already
+holds that last entitlement (granted by Apple 2026-09-18). `electron-builder`
+25.1.8 already supports `mac.provisioningProfile`, so no tooling change is needed.
+
+Also learned: Playwright cannot launch a signed hardened-runtime build (env
+injection is blocked) — verify signed builds via `--remote-debugging-port` + CDP.
+The `FLIT_USER_DATA_DIR` / `FLIT_SHARED_DIR` env vars (see `tests/launch.ts`) let
+a test instance run alongside a live Flit without fighting the single-instance
+lock.
 
 ### Phase 15 notes — per-account notification mute (2026-07-08)
 Right-click an account in the sidebar → **Mute Notifications** (checkbox).
