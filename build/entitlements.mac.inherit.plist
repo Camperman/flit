@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Helper processes (GPU/Renderer/Plugin). Deliberately WITHOUT
+         keychain-access-groups: that entitlement is authorized by the
+         provisioning profile embedded in the main .app bundle, and helper
+         bundles cannot carry a profile of their own. Inheriting it gets every
+         helper AMFI-killed (GPU/network "exit_code=9", main process SIGTRAP).
+         Google Chrome does the same — its helpers carry no entitlements. -->
+    <!-- Required for Electron (V8 JIT) under the hardened runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Google Meet: microphone + camera. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    <!-- Passkey/security-key sign-in over Bluetooth (caBLE). -->
+    <key>com.apple.security.device.bluetooth</key>
+    <true/>
+  </dict>
+</plist>
