@@ -15,5 +15,11 @@
     <!-- Passkey/security-key sign-in over Bluetooth (caBLE). -->
     <key>com.apple.security.device.bluetooth</key>
     <true/>
+    <!-- Touch ID / Secure Enclave WebAuthn credentials (app.configureWebAuthn).
+         Must match the keychainAccessGroup passed in src/main/index.ts. -->
+    <key>keychain-access-groups</key>
+    <array>
+      <string>VZ44XQWQ84.com.gottaplaygames.flit.webauthn</string>
+    </array>
   </dict>
 </plist>
