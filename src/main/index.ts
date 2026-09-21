@@ -285,7 +285,22 @@ app.whenReady().then(() => {
     touchID: {
       keychainAccessGroup: WEBAUTHN_KEYCHAIN_ACCESS_GROUP,
       promptReason: 'sign in to $1'
-    }
+    },
+    // Route passkeys through Apple's ASAuthorizationController so the SYSTEM
+    // credential sheet appears and iCloud Keychain / 1Password passkeys — the
+    // ones already synced to this Apple account — can satisfy a request.
+    // Without this, Flit only ever sees its own device-bound Touch ID store,
+    // which starts empty, so existing google.com passkeys are invisible.
+    //
+    // Electron documents this path as requiring an Associated Domain
+    // (`webcredentials:<rp>` + an AASA file served by the relying party), which
+    // a browser can never satisfy for arbitrary sites. We rely instead on
+    // `com.apple.developer.web-browser.public-key-credential`, which Apple
+    // granted for this App ID: it is exactly the privilege that lets a browser
+    // request ANY relying-party ID. Chrome ships the same combination.
+    // UNPROVEN as of 2026-09-21 — Electron's own code does not check for the
+    // entitlement, so whether macOS honours it here is what this tests.
+    platformPasskeys: true
   })
   state = loadState()
   firstRun = state.firstRun === true

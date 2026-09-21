@@ -21,5 +21,16 @@
     <array>
       <string>VZ44XQWQ84.com.gottaplaygames.flit.webauthn</string>
     </array>
+    <!-- System passkeys (iCloud Keychain / 1Password) via
+         ASAuthorizationController. This is the Apple-granted browser
+         capability that allows requesting ANY relying-party ID without an
+         Associated Domain. Chrome carries the same pair.
+         BOTH are provisioning-profile-backed: the profile at
+         build/flit.provisionprofile must list them, or AMFI kills the app at
+         launch. See build/README-provisioning.md. -->
+    <key>com.apple.developer.web-browser.public-key-credential</key>
+    <true/>
+    <key>com.apple.application-identifier</key>
+    <string>VZ44XQWQ84.com.gottaplaygames.flit</string>
   </dict>
 </plist>
