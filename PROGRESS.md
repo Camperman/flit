@@ -43,12 +43,17 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 35 | Security hardening + size trim + Chrome-like dark contrast | ✅ |
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
-| 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ (manual enrolment check pending) |
+| 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ authenticator verified · ⚠️ Google flows divert to phone |
 
 ## Next up
-**Phase 38 is unblocked and verified.** The remaining work is manual: enrol a
-real passkey with Google in a signed build and confirm the Touch ID prompt, then
-decide whether to cut a release (Electron 44 + passkeys) for the friends tier.
+**Phase 39 — make Google's flows actually reach the Touch ID authenticator.**
+The authenticator itself is proven (see Phase 38 notes), but Electron ships no
+WebAuthn transport picker, so when a site permits several transports Chromium
+auto-dispatches and Google's sign-in keeps going to the phone/Bluetooth
+transport, which fails. Options: get Google's *create* flow to request
+`authenticatorAttachment: 'platform'` (works today), or patch//upstream Electron
+to let the embedder deprioritise the hybrid transport. No Chromium runtime flag
+exists to disable hybrid — checked the Electron 44 binary.
 
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
 2026-07-08: per-account notification mute (Phase 15), notification click-to-switch
@@ -89,8 +94,25 @@ Three things had to be true, each found the hard way:
 A fresh clone cannot produce a signed build without it — see
 `build/README-provisioning.md`.
 
-Still manual / unverified: actually enrolling a passkey with Google and signing
-in with it (needs a real Touch ID press). Credentials are device-bound and do
+**PROVEN 2026-09-21 (corrects the commit message's flat "working").** A
+platform-only ceremony in a signed build — `authenticatorAttachment: 'platform'`,
+`userVerification: 'required'`, `residentKey: 'required'` on webauthn.io —
+returned `SUCCESS` with `authenticatorAttachment: "platform"` after a real Touch
+ID press. The Secure Enclave authenticator genuinely works.
+
+**Known gap — Google sign-in still fails.** Every Google ceremony that permits
+multiple transports lands on the phone/Bluetooth (caBLE) path and errors with
+"Make sure Bluetooth is on". Cause: Electron ships none of Chrome's WebAuthn
+picker UI, and its dispatch hook
+(`EmbedderControlsAuthenticatorDispatch`) only arbitrates between two
+`kInternal` authenticators (Touch ID vs iCloud Keychain) *and* only when BOTH
+`touchID` and `platformPasskeys` are configured. There is no embedder lever to
+suppress or deprioritise hybrid, and no Chromium feature flag for it (checked
+the Electron 44 binary — only histogram names). So the user cannot choose
+"Touch ID" over "phone" in a Google flow.
+
+Still unverified: enrolling a passkey with Google that lands in the Secure
+Enclave, and signing in with it. Credentials are device-bound and do
 NOT sync via iCloud — keep a fallback sign-in method. This does not fix Apple
 Passwords autofill, and does not enable the system passkey sheet (iCloud
 Keychain / 1Password); that path needs Chromium's entitlement-gated
