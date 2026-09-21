@@ -44,24 +44,70 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
 | 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ authenticator verified · ⚠️ Google flows divert to phone |
+| 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ✅ PROVEN on Electron 45 alpha (branch) |
 
 ## Next up
-**Phase 39 — make Google's flows actually reach the Touch ID authenticator.**
-The authenticator itself is proven (see Phase 38 notes), but Electron ships no
-WebAuthn transport picker, so when a site permits several transports Chromium
-auto-dispatches and Google's sign-in keeps going to the phone/Bluetooth
-transport, which fails. Options: get Google's *create* flow to request
-`authenticatorAttachment: 'platform'` (works today), or patch//upstream Electron
-to let the embedder deprioritise the hybrid transport. No Chromium runtime flag
-exists to disable hybrid — checked the Electron 44 binary.
+**Phase 39 works — decide how to ship it.** It needs Electron 45, which is still
+alpha (`45.0.0-alpha.9`); `platformPasskeys` does not exist in 41–44. Options:
+wait for 45 stable, or ship from alpha. Also worth filing upstream: Electron's
+own source says apps "don't (and can't) carry that entitlement" — Flit proves
+otherwise, and the entitlement-gated arbitrary-rpId path deserves to be
+documented/supported.
 
-**First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
-2026-07-08: per-account notification mute (Phase 15), notification click-to-switch
-(Phase 16), Chrome extensions (Phase 17). Already shipped earlier without a phase
-entry: auto-fetched Google avatars, persisted global zoom. **Scroll-position
-restore was investigated and dropped**: views stay alive while the app runs (scroll
-only lost on the 30-min idle discard), and Google apps scroll inner containers, so
-a generic window-scroll restore wouldn't actually restore anything useful.
+### Phase 39 notes — system passkeys via the browser entitlement (2026-09-21)
+**The thing Brandon actually wanted, working.** Flit can now use the passkeys
+already synced to his Apple account, instead of only Chromium's private,
+device-bound Touch ID store.
+
+There are two separate passkey stores on a Mac:
+1. **The system store** (iCloud Keychain / 1Password) via Apple's
+   `ASAuthorizationController` — what Safari and Chrome use, syncs across
+   devices, and where the user's existing google.com passkeys already live.
+2. **Chromium's private Touch ID store** — device-bound, never synced, starts
+   empty. This is all Phase 38 could reach, which is why Google sign-in failed.
+
+Reaching store 1 for an arbitrary relying party needs
+`com.apple.developer.web-browser.public-key-credential` — Apple's browser
+capability, granted for this App ID 2026-09-18. Chrome carries exactly the same
+entitlement pair.
+
+**Electron says this is impossible; it is not.**
+`shell/browser/webauthn/electron_platform_passkeys_authenticator_mac.mm` states
+it avoids Chromium's entitlement-gated `icloud_keychain.mm` because "Electron
+apps don't (and can't) carry that entitlement", and routes `platformPasskeys`
+through Associated Domains instead — useless for a browser, since no one can
+publish an AASA file on google.com. But Electron never *checks* for the
+entitlement: it just hands the request's rpId to
+`ASAuthorizationPlatformPublicKeyCredentialProvider`. When the app does carry
+the entitlement, macOS honours an arbitrary rpId with no associated domain.
+
+**Measured proof.** Signed build, Electron 45.0.0-alpha.9, `platformPasskeys:
+true`, on a **brand-new scratch profile**, from the `https://accounts.google.com`
+origin:
+
+    navigator.credentials.get({ rpId: 'google.com', allowCredentials: [] })
+      -> SUCCESS, authenticatorAttachment: 'platform', credential nPu1ylGo_t
+
+The scratch profile's Touch ID store cannot have held that credential: the
+metadata secret is per-BrowserContext, and Flit has never created a google.com
+credential in any profile. It came from the system store. The user reported a
+fingerprint sheet that looked different from Chromium's — consistent with
+ASAuthorizationController.
+
+**Requirements (all three):**
+- Electron **45+** — `platformPasskeys` is absent from 41, 42, 43 and 44.
+- `com.apple.developer.web-browser.public-key-credential` +
+  `com.apple.application-identifier` in `entitlements.mac.plist`, main bundle
+  ONLY (helpers can't carry a profile; inheriting = AMFI kill).
+- A provisioning profile generated **after** the capability was enabled on the
+  App ID. Enabling a capability marks existing profiles Invalid; they must be
+  regenerated, and a profile only carries what was enabled at generation time.
+
+**Corrects the Phase 38 diagnosis.** The Google failure was never "Chromium
+chose the phone transport". The captured `get()` named four credentials, none of
+them local, and Chromium rejected it in **30 ms** — no authenticator engaged, no
+caBLE attempt. Google's "make sure Bluetooth is on" is generic fallback copy and
+is misleading.
 
 ### Phase 38 notes — Touch ID passkeys (2026-09-18)
 `app.configureWebAuthn({ touchID: { keychainAccessGroup, promptReason } })` at
