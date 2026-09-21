@@ -267,8 +267,26 @@ app.on('web-contents-created', (_event, contents) => {
   })
 })
 
+// Touch ID / Secure Enclave platform authenticator for WebAuthn. Lets Google
+// (and any other site) register and use a passkey backed by this Mac's Secure
+// Enclave, unlocked with Touch ID. Electron derives a per-session metadata
+// secret, so credentials made in one `persist:account-<id>` partition are not
+// visible to another — one passkey set per account, like separate profiles.
+//
+// This is inert unless the app is signed AND carries the matching
+// `keychain-access-groups` entitlement (build/entitlements.mac.plist): unsigned
+// dev builds accept the call but isUserVerifyingPlatformAuthenticatorAvailable()
+// stays false. Credentials are device-bound and do NOT sync via iCloud.
+const WEBAUTHN_KEYCHAIN_ACCESS_GROUP = 'VZ44XQWQ84.com.gottaplaygames.flit.webauthn'
+
 app.whenReady().then(() => {
   if (!gotInstanceLock) return
+  app.configureWebAuthn({
+    touchID: {
+      keychainAccessGroup: WEBAUTHN_KEYCHAIN_ACCESS_GROUP,
+      promptReason: 'sign in to $1'
+    }
+  })
   state = loadState()
   firstRun = state.firstRun === true
   seedPasswordsApp()

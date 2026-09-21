@@ -43,13 +43,12 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 35 | Security hardening + size trim + Chrome-like dark contrast | ✅ |
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
+| 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ (manual enrolment check pending) |
 
 ## Next up
-**Phase 38 — Touch ID passkeys — BLOCKED on an Apple provisioning profile.**
-The code is written and waiting on branch `feat/passkey-touchid` (entitlement +
-`app.configureWebAuthn`). It cannot land on master until a **Developer ID
-provisioning profile for `com.gottaplaygames.flit`** exists and is embedded at
-`Contents/embedded.provisionprofile` — see the Phase 37 notes for why.
+**Phase 38 is unblocked and verified.** The remaining work is manual: enrol a
+real passkey with Google in a signed build and confirm the Touch ID prompt, then
+decide whether to cut a release (Electron 44 + passkeys) for the friends tier.
 
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
 2026-07-08: per-account notification mute (Phase 15), notification click-to-switch
@@ -58,6 +57,49 @@ entry: auto-fetched Google avatars, persisted global zoom. **Scroll-position
 restore was investigated and dropped**: views stay alive while the app runs (scroll
 only lost on the 30-min idle discard), and Google apps scroll inner containers, so
 a generic window-scroll restore wouldn't actually restore anything useful.
+
+### Phase 38 notes — Touch ID passkeys (2026-09-18)
+`app.configureWebAuthn({ touchID: { keychainAccessGroup, promptReason } })` at
+startup turns on the Secure Enclave platform authenticator. Electron derives a
+per-`session` metadata secret, so credentials made in one `persist:account-<id>`
+partition are invisible to another — one passkey set per account.
+
+**Verified end to end on a signed build:** on `https://accounts.google.com`
+inside Flit, `isUserVerifyingPlatformAuthenticatorAvailable()` returns **true**
+and `isConditionalMediationAvailable()` returns **true**. Both were `false`
+before this phase.
+
+Three things had to be true, each found the hard way:
+1. **Signing is mandatory.** Unsigned, `configureWebAuthn` accepts the call and
+   iUVPAA silently stays `false`.
+2. **`keychain-access-groups` is provisioning-profile-backed.** Signed without an
+   embedded profile, AMFI SIGKILLs the app at launch (exit 137, no crash report).
+   Fixed by `mac.provisioningProfile` → `build/flit.provisionprofile`, a
+   Developer ID profile for `com.gottaplaygames.flit` granting
+   `keychain-access-groups = VZ44XQWQ84.*`.
+3. **Helpers must NOT inherit the entitlement.** With a shared
+   `entitlementsInherit`, the helper bundles got the keychain group but cannot
+   carry a profile, so every helper was AMFI-killed (GPU/network
+   `exit_code=9`, main process exit 133/SIGTRAP). Fixed by splitting
+   `build/entitlements.mac.inherit.plist` (same as the main plist minus
+   `keychain-access-groups`). Google Chrome does the same — its helpers carry no
+   entitlements at all.
+
+`build/flit.provisionprofile` is git-ignored (signing artifact, like the cert).
+A fresh clone cannot produce a signed build without it — see
+`build/README-provisioning.md`.
+
+Still manual / unverified: actually enrolling a passkey with Google and signing
+in with it (needs a real Touch ID press). Credentials are device-bound and do
+NOT sync via iCloud — keep a fallback sign-in method. This does not fix Apple
+Passwords autofill, and does not enable the system passkey sheet (iCloud
+Keychain / 1Password); that path needs Chromium's entitlement-gated
+`icloud_keychain.mm`, which Electron deliberately does not wire up.
+
+Note: the granted Apple entitlement
+`com.apple.developer.web-browser.public-key-credential` is NOT in the generated
+profile's entitlements — the capability likely needs enabling on the App ID
+first. Irrelevant to Touch ID; it would matter only for the system-sheet path.
 
 ### Phase 37 notes — Electron 37 → 44 upgrade (2026-09-18)
 Bumped `electron` to ^44.4.3 (Chromium 138.0.7204.251 → 152.0.7977.130, 14 Chrome
