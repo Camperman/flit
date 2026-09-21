@@ -44,15 +44,14 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
 | 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ authenticator verified · ⚠️ Google flows divert to phone |
-| 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ✅ PROVEN on Electron 45 alpha (branch) |
+| 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ⚠️ reaches the system store, but RPs reject the assertion |
 
 ## Next up
-**Phase 39 works — decide how to ship it.** It needs Electron 45, which is still
-alpha (`45.0.0-alpha.9`); `platformPasskeys` does not exist in 41–44. Options:
-wait for 45 stable, or ship from alpha. Also worth filing upstream: Electron's
-own source says apps "don't (and can't) carry that entitlement" — Flit proves
-otherwise, and the entitlement-gated arbitrary-rpId path deserves to be
-documented/supported.
+**Phase 39 is blocked on an Electron limitation, not on Apple.** Flit can reach
+the system passkey store, but Electron returns a non-spec
+`clientDataJSON.origin`, so real relying parties reject every assertion. Nothing
+configurable fixes it. Options: (a) file upstream and wait, (b) fork/patch
+Electron, (c) stop here — v0.8.0 already shipped the Electron 44 value.
 
 ### Phase 39 notes — system passkeys via the browser entitlement (2026-09-21)
 **The thing Brandon actually wanted, working.** Flit can now use the passkeys
@@ -81,7 +80,34 @@ entitlement: it just hands the request's rpId to
 `ASAuthorizationPlatformPublicKeyCredentialProvider`. When the app does carry
 the entitlement, macOS honours an arbitrary rpId with no associated domain.
 
-**Measured proof.** Signed build, Electron 45.0.0-alpha.9, `platformPasskeys:
+**BUT IT IS NOT USABLE YET — corrected 2026-09-21, same day.** Reaching the
+store is not the same as a relying party accepting the assertion. Captured from
+Google's real sign-in in the alpha build, after a successful fingerprint:
+
+    get:REQUEST  pageOrigin https://accounts.google.com   rpId google.com
+    get:OK       clientDataOrigin "https://google.com"    <-- WRONG
+                 pageOrigin       "https://accounts.google.com"
+
+WebAuthn requires `clientData.origin` to be the CALLER'S origin. Electron
+reports `https://<rpId>`, so Google's server rejects it and renders its generic
+"Something went wrong / make sure Bluetooth is on" page. The ceremony itself
+succeeded — real iCloud credential, real user verification, ~2.4s.
+
+**Why, from Electron's own source** (`electron_platform_passkeys_authenticator_mac.mm`):
+it deliberately does not set Apple's private `clientData` property because "the
+KVC setter is Apple SPI that App Store review rejects", so Apple's public API
+always builds `origin: https://<rpId>`. That is correct for a domain-associated
+app, where page origin == rpId. It is wrong for a browser, where they differ.
+Electron also rejects cross-origin (iframe) ceremonies outright for the same
+reason.
+
+No configuration fixes this. The two real fixes are (1) set the private
+clientData via the KVC SPI — which Electron won't do for App Store reasons, but
+which does not constrain a Developer ID app like Flit — or (2) use Chromium's
+entitlement-gated `device/fido/mac/icloud_keychain.mm`, which exists precisely
+for browsers and handles this correctly. Either means patching/forking Electron.
+
+**Measured proof that the store IS reachable.** Signed build, Electron 45.0.0-alpha.9, `platformPasskeys:
 true`, on a **brand-new scratch profile**, from the `https://accounts.google.com`
 origin:
 
