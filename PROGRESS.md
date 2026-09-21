@@ -112,7 +112,20 @@ the Electron 44 binary — only histogram names). So the user cannot choose
 "Touch ID" over "phone" in a Google flow.
 
 Still unverified: enrolling a passkey with Google that lands in the Secure
-Enclave, and signing in with it. Credentials are device-bound and do
+Enclave, and signing in with it.
+
+**Known hazard — passkeys in Incognito (upstream electron#52302).**
+`app.configureWebAuthn` is app-global, so the Touch ID authenticator is live in
+Flit's Incognito sessions too — and those use a memory-only partition
+(`partitionFor()` returns a bare `incognito-<id>` with no `persist:` prefix,
+`src/main/accounts.ts`). Electron stores the credential *metadata secret* in the
+BrowserContext's PrefService, which for an in-memory session is regenerated every
+launch. So a passkey created in an Incognito window is written to the Secure
+Enclave permanently but can never be unsealed again: the keychain item is
+orphaned (and accumulates), and the site believes the user has a working passkey.
+There is no app-side fix — the access group is app-global static state, and
+renderer-side interception is the wrong layer. Upstream asks for a per-session
+opt-out; until then this is documented, not fixed. Credentials are device-bound and do
 NOT sync via iCloud — keep a fallback sign-in method. This does not fix Apple
 Passwords autofill, and does not enable the system passkey sheet (iCloud
 Keychain / 1Password); that path needs Chromium's entitlement-gated
