@@ -43,7 +43,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 35 | Security hardening + size trim + Chrome-like dark contrast | ✅ |
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
-| 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ authenticator verified · ⚠️ Google flows divert to phone |
+| 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ WORKING end-to-end (confirmed 2026-10-06) |
 
 ## Next up
 **Phase 39 — make Google's flows actually reach the Touch ID authenticator.**
@@ -64,6 +64,24 @@ only lost on the 30-min idle discard), and Google apps scroll inner containers, 
 a generic window-scroll restore wouldn't actually restore anything useful.
 
 ### Phase 38 notes — Touch ID passkeys (2026-09-18)
+
+**CONFIRMED WORKING 2026-10-06.** Brandon signed in to Google with a passkey in
+Flit for the first time. Evidence that this was the Touch ID store and not
+iCloud Keychain: the running build is the shipped **v0.8.0 / Electron 44.4.3**
+from `/Applications`, whose signature carries **only** `keychain-access-groups`
+— no `com.apple.developer.web-browser.public-key-credential`, and its embedded
+profile grants none either. That build cannot reach the system store, so the
+credential can only live in Chromium's Secure Enclave store.
+
+**This supersedes the 2026-09-21 "Google flows divert to phone" status, which
+was wrong.** There was never a transport-selection defect. The only obstacle was
+a chicken-and-egg: a local passkey must be CREATED before it can be used, and
+Google's reauth kept offering the existing phone passkey instead of the create
+flow. Once a credential existed locally, sign-in worked.
+
+Phase 39 (system/iCloud passkeys) is therefore an **enhancement, not a
+prerequisite** — it would add cross-device sync, nothing more.
+
 `app.configureWebAuthn({ touchID: { keychainAccessGroup, promptReason } })` at
 startup turns on the Secure Enclave platform authenticator. Electron derives a
 per-`session` metadata secret, so credentials made in one `persist:account-<id>`
