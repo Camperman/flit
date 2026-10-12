@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, components } from 'electron'
 import { randomUUID } from 'crypto'
 import { existsSync, renameSync } from 'fs'
 import { join } from 'path'
@@ -279,8 +279,24 @@ app.on('web-contents-created', (_event, contents) => {
 // stays false. Credentials are device-bound and do NOT sync via iCloud.
 const WEBAUTHN_KEYCHAIN_ACCESS_GROUP = 'VZ44XQWQ84.com.gottaplaygames.flit.webauthn'
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (!gotInstanceLock) return
+
+  // Widevine DRM. Flit runs castLabs' Electron fork, which does NOT bundle the
+  // CDM — it fetches it at runtime through Chrome's component updater, and that
+  // only happens if we ask. Without this, `requestMediaKeySystemAccess` rejects
+  // for every real key system and DRM sites (music.amazon.com, Spotify web,
+  // Netflix) show a misleading "update your browser" page.
+  //
+  // Deliberately non-fatal: a failure here (offline first run, component
+  // server down) must not stop the browser from starting. DRM sites simply stay
+  // broken until the next launch that can fetch it.
+  try {
+    await components.whenReady()
+  } catch (err) {
+    console.error('Widevine component unavailable; DRM playback will not work:', err)
+  }
+
   app.configureWebAuthn({
     touchID: {
       keychainAccessGroup: WEBAUTHN_KEYCHAIN_ACCESS_GROUP,
