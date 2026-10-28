@@ -44,6 +44,8 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 36 | Version visibility + manual update check (About, menu, Preferences) | ✅ |
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
 | 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ WORKING end-to-end (confirmed 2026-10-06) |
+| 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ⏸ on branch `feat/platform-passkeys`, blocked upstream |
+| 40 | Widevine DRM (castLabs Electron) — Amazon Music, Spotify, Netflix | ✅ |
 
 ## Next up
 **Phase 39 — make Google's flows actually reach the Touch ID authenticator.**
@@ -62,6 +64,45 @@ entry: auto-fetched Google avatars, persisted global zoom. **Scroll-position
 restore was investigated and dropped**: views stay alive while the app runs (scroll
 only lost on the 30-min idle discard), and Google apps scroll inner containers, so
 a generic window-scroll restore wouldn't actually restore anything useful.
+
+### Phase 40 notes — Widevine DRM (2026-10-12)
+music.amazon.com showed "Update Chrome — this browser version is no longer
+supported". **Not a user-agent problem**: overriding the UA to plain Chrome 152,
+including adding `Google Chrome` to `userAgentData.brands`, changed nothing, and
+the signed-out landing page loaded fine either way. The real cause was that Flit
+had **no DRM at all** — `requestMediaKeySystemAccess` succeeded only for
+`org.w3.clearkey` (test-only), so Amazon fell back to generic browser-upgrade
+copy. The same failure hits Spotify web, Netflix, and anything DRM-protected.
+
+Electron ships without the Widevine CDM. Fix: castLabs' fork,
+`github:castlabs/electron-releases#v44.5.1+wvcus` — a patch-level match for the
+44.4.3 we were on.
+
+Two non-obvious integration steps:
+1. **castLabs does not bundle the CDM.** It is fetched at runtime via Chrome's
+   component updater, and only if the app asks. `app.whenReady()` now awaits
+   `components.whenReady()`, wrapped in try/catch so an offline first run cannot
+   stop the browser starting (DRM just stays broken until a launch that can
+   fetch it).
+2. **electron-builder 404s.** It resolves the binary from electron/electron
+   releases, which has no `+wvcus` asset. `build.electronDist` now points at the
+   copy npm installs.
+
+Verified on a SIGNED, hardened-runtime build (not just dev):
+`com.widevine.alpha` -> SUPPORTED, CDM at
+`userData/WidevineCdm/4.10.3112.0/.../libwidevinecdm.dylib`, no
+library-validation errors and no extra entitlement required.
+
+Untested: whether Amazon's license server actually issues a license — that is
+where castLabs' VMP signing (`castlabs-evs`) may be required. CDM
+initialisation working does not prove playback works.
+
+Tradeoff accepted: Flit now depends on a third-party Electron fork, so release
+timing tracks castLabs rather than upstream Electron.
+
+Note on numbering: Phase 39 (system/iCloud passkeys) is NOT on master — it lives
+on `feat/platform-passkeys`, blocked on Electron's wrong `clientDataJSON.origin`.
+Its number is reserved here so the branch does not collide when/if it lands.
 
 ### Phase 38 notes — Touch ID passkeys (2026-09-18)
 
