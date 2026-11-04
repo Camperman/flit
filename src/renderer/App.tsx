@@ -35,6 +35,8 @@ interface DialogState {
 
 interface ShortcutDialogState {
   mode: 'add' | 'edit'
+  /** The account the shortcut belongs to — NOT necessarily the active one. */
+  accountId: string
   shortcutId?: string
   initial: ShortcutValues
 }
@@ -158,8 +160,8 @@ export function App(): JSX.Element {
       })
     })
     const offEditAccount = window.flit.onEditAccount((id) => openEdit(id))
-    const offEditShortcut = window.flit.onEditShortcut(({ shortcutId }) =>
-      openEditShortcut(shortcutId)
+    const offEditShortcut = window.flit.onEditShortcut(({ accountId, shortcutId }) =>
+      openEditShortcut(accountId, shortcutId)
     )
     const offExtCatalog = window.flit.onOpenExtensionCatalog(() => setExtCatalogOpen(true))
     void window.flit.getUpdateState().then(setUpdateState)
@@ -309,16 +311,24 @@ export function App(): JSX.Element {
     })
   }
 
-  const openAddShortcut = (): void =>
-    setShortcutDialog({ mode: 'add', initial: { label: '', url: 'https://' } })
-
-  const openEditShortcut = (shortcutId: string): void => {
+  const openAddShortcut = (): void => {
+    // Called from the rendered UI, so `activeId` here is current (unlike the
+    // mount-only menu listener below).
     if (!activeId) return
-    void window.flit.getShortcuts(activeId).then((list) => {
+    setShortcutDialog({ mode: 'add', accountId: activeId, initial: { label: '', url: 'https://' } })
+  }
+
+  // Takes accountId explicitly rather than reading `activeId`. This listener is
+  // registered in a mount-only effect, so a closure over `activeId` captures its
+  // initial `undefined` and every Edit silently no-ops. The main process already
+  // sends the owning account — use it (same shape as the bookmark dialog).
+  const openEditShortcut = (accountId: string, shortcutId: string): void => {
+    void window.flit.getShortcuts(accountId).then((list) => {
       const shortcut = list.find((s) => s.id === shortcutId)
       if (!shortcut) return
       setShortcutDialog({
         mode: 'edit',
+        accountId,
         shortcutId,
         initial: { label: shortcut.label, url: shortcut.url }
       })
@@ -326,11 +336,12 @@ export function App(): JSX.Element {
   }
 
   const handleShortcutSubmit = (values: ShortcutValues): void => {
-    if (!activeId) return
+    const accountId = shortcutDialog?.accountId
+    if (!accountId) return
     if (shortcutDialog?.mode === 'add') {
-      void window.flit.addShortcut(activeId, values)
+      void window.flit.addShortcut(accountId, values)
     } else if (shortcutDialog?.mode === 'edit' && shortcutDialog.shortcutId) {
-      void window.flit.updateShortcut(activeId, shortcutDialog.shortcutId, values)
+      void window.flit.updateShortcut(accountId, shortcutDialog.shortcutId, values)
     }
     setShortcutDialog(null)
   }
