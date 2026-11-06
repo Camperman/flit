@@ -42,6 +42,7 @@
       "output": "dist"
     },
     "electronDist": "node_modules/electron/dist",
+    "afterPack": "scripts/vmp-sign.mjs",
     "afterSign": "scripts/sign-utility-helper.mjs",
     "publish": {
       "provider": "github",
