@@ -99,6 +99,11 @@ export function AppRail({
                 🔊
               </span>
             )}
+            {app.notificationsMuted && (
+              <span className="apprail__muted" title="Notifications muted">
+                🔕
+              </span>
+            )}
           </span>
           {variant === 'rail' && <span className="apprail__label">{app.label}</span>}
         </button>

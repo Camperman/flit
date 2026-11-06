@@ -1744,6 +1744,17 @@ body {
 }
 
 /* App-rail "playing audio" indicator (bottom-right of the icon) */
+/* Muted-notifications indicator for a rail app. Mirrors .apprail__audio but
+   sits bottom-LEFT so an app that is both muted and audible shows both. */
+.apprail__muted {
+  position: absolute;
+  bottom: -5px;
+  left: -6px;
+  font-size: 9px;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px var(--panel-bg));
+}
+
 .apprail__audio {
   position: absolute;
   bottom: -5px;

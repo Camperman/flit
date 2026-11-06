@@ -503,6 +503,16 @@ export class AccountManager implements ExtensionTabDelegate {
     const settled = (permission: string, requestingUrl: string): boolean | 'ask' => {
       if (permission === 'notifications' && this.accounts.get(config.id)?.muted) return false
       if (!GRANTED_PERMISSIONS.has(permission)) return false
+      // Per-app notification mute (Phase 41). A stored `false` for this origin
+      // silences just that app; absent means keep notifying. Never 'ask' —
+      // notifications must not start prompting the way camera/mic do.
+      if (permission === 'notifications') {
+        const origin = originOf(requestingUrl)
+        const stored = origin
+          ? this.accounts.get(config.id)?.sitePermissions?.[`${origin}|notifications`]
+          : undefined
+        return stored === undefined ? true : stored
+      }
       if (!SENSITIVE_PERMISSIONS.has(permission)) return true
       if (isTrustedMediaOrigin(requestingUrl)) return true
       const origin = originOf(requestingUrl)
@@ -1910,7 +1920,8 @@ export class AccountManager implements ExtensionTabDelegate {
       label: s.label,
       favicon: s.favicon,
       unread: wa?.unreadByApp[s.id] ?? 0,
-      audible: wa?.tabs.some((t) => t.originShortcutId === s.id && t.audible && !t.muted)
+      audible: wa?.tabs.some((t) => t.originShortcutId === s.id && t.audible && !t.muted),
+      notificationsMuted: this.shortcutNotificationsMuted(accountId, s.url)
     }))
     return { apps, activeShortcutId: activeTab?.originShortcutId }
   }
@@ -2062,6 +2073,32 @@ export class AccountManager implements ExtensionTabDelegate {
     this.onState?.()
   }
 
+  /** Is this app's origin silenced in this account? (Phase 41) */
+  private shortcutNotificationsMuted(accountId: string, shortcutUrl: string): boolean {
+    const origin = originOf(shortcutUrl)
+    if (!origin) return false
+    return this.accounts.get(accountId)?.sitePermissions?.[`${origin}|notifications`] === false
+  }
+
+  /**
+   * Right-click an app -> Mute Notifications. Stored per ORIGIN, so two
+   * shortcuts pointing at the same site share one setting. Chromium re-checks
+   * the permission per notification, so this takes effect with no reload.
+   */
+  toggleShortcutNotifications(accountId: string, shortcutId: string): void {
+    const meta = this.accounts.get(accountId)
+    const shortcut = meta?.shortcuts.find((sc) => sc.id === shortcutId)
+    if (!meta || !shortcut) return
+    const origin = originOf(shortcut.url)
+    if (!origin) return
+    const key = `${origin}|notifications`
+    const muted = meta.sitePermissions?.[key] === false
+    if (muted) delete meta.sitePermissions?.[key]
+    else (meta.sitePermissions ??= {})[key] = false
+    this.broadcastApps(accountId)
+    this.onState?.()
+  }
+
   // ---- context menus (per window) ---------------------------------------
 
   popupAccountMenu(win: BrowserWindow, accountId: string): void {
@@ -2157,10 +2194,17 @@ export class AccountManager implements ExtensionTabDelegate {
   popupShortcutMenu(win: BrowserWindow, accountId: string, shortcutId: string): void {
     const ws = this.wsFor(win)
     const openTab = ws?.perAccount.get(accountId)?.tabs.find((t) => t.originShortcutId === shortcutId)
+    const shortcut = this.accounts.get(accountId)?.shortcuts.find((sc) => sc.id === shortcutId)
     Menu.buildFromTemplate([
       {
         label: 'Edit',
         click: () => win.webContents.send('menu:edit-shortcut', { accountId, shortcutId })
+      },
+      {
+        label: 'Mute Notifications',
+        type: 'checkbox',
+        checked: this.shortcutNotificationsMuted(accountId, shortcut?.url ?? ''),
+        click: () => this.toggleShortcutNotifications(accountId, shortcutId)
       },
       {
         label: 'Close',

@@ -96,6 +96,8 @@ export interface AppInfo {
   unread: number
   /** One of this app's tabs is playing audio. */
   audible?: boolean
+  /** Notifications from this app's origin are silenced in this account. */
+  notificationsMuted?: boolean
 }
 
 /** Drives the app rail: the profile's apps + which one is currently active. */

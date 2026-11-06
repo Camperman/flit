@@ -46,16 +46,90 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ WORKING end-to-end (confirmed 2026-10-06) |
 | 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ⏸ on branch `feat/platform-passkeys`, blocked upstream |
 | 40 | Widevine DRM (castLabs Electron) — Amazon Music, Spotify, Netflix | ✅ |
+| 41 | Per-app notification mute (silence Gmail, keep Calendar) | ✅ (menu toggle is a manual check) |
 
 ## Next up
-**Phase 39 — make Google's flows actually reach the Touch ID authenticator.**
-The authenticator itself is proven (see Phase 38 notes), but Electron ships no
-WebAuthn transport picker, so when a site permits several transports Chromium
-auto-dispatches and Google's sign-in keeps going to the phone/Bluetooth
-transport, which fails. Options: get Google's *create* flow to request
-`authenticatorAttachment: 'platform'` (works today), or patch//upstream Electron
-to let the embedder deprioritise the hybrid transport. No Chromium runtime flag
-exists to disable hybrid — checked the Electron 44 binary.
+**Phase 39 — system/iCloud passkeys — parked, blocked upstream.** Lives on branch
+`feat/platform-passkeys`. Flit can reach the system passkey store, but Electron
+returns `clientDataJSON.origin` as `https://<rpId>` instead of the caller's
+origin, so relying parties reject every assertion. Needs a patched Electron.
+(The earlier "Google flows divert to phone / transport selection" framing was
+WRONG — see the Phase 38 notes.)
+
+### Phase 41 notes — Per-app notification mute (2026-11-06)
+
+**Built and verified.** Measured on a signed-out scratch profile, using origins
+that do not redirect (Google's own URLs bounce to accounts/workspace when
+signed out, which silently invalidated an earlier version of this test):
+
+    BEFORE  example.com => granted   example.org => granted
+    AFTER   example.com => denied    example.org => granted
+
+One origin silenced, the other untouched, surviving a full app restart. The
+`notificationsMuted` flag reaching the rail was confirmed separately
+(`Mail:true Calendar:false ...`).
+
+**Still a manual check:** clicking the menu item itself. It fires a native
+Electron menu, which automation cannot click, so `toggleShortcutNotifications()`
+is exercised only via the state it writes.
+
+Original spec follows.
+
+
+
+**Why.** Gmail fires a notification for every email. Calendar meeting reminders
+are wanted. Today the only control is the account-wide mute, which kills both.
+Gmail and Calendar run as separate rail apps on separate origins
+(`mail.google.com`, `calendar.google.com`), so they can be controlled separately.
+
+**Behaviour**
+- Right-click an app icon in the rail -> **Mute Notifications** checkbox, in the
+  existing Edit / Close / Remove menu.
+- Scope is per app **per account**: muting Gmail in one account leaves Gmail in
+  another account alone.
+- A muted app shows the same mute badge on its rail icon that a muted account
+  shows on its sidebar avatar.
+- The account-level mute **stays** and acts as the global override: if the
+  account is muted, everything is silent regardless of per-app state.
+- Default is unchanged — anything untouched keeps notifying, with no new prompts.
+- Setting persists across restarts.
+
+**Implementation sketch**
+- Reuse the existing per-origin store: `sitePermissions` on account meta, a
+  `Record<string, boolean>` keyed `` `${origin}|${permission}` `` — already
+  persisted and already consulted by `settled()` (`src/main/accounts.ts:503`).
+- Today `notifications` never reaches that lookup: it is in
+  `GRANTED_PERMISSIONS` and not in `SENSITIVE_PERMISSIONS`, so `settled()`
+  returns `true` first. Change it to consult the stored per-origin value for
+  `notifications` when one exists, and otherwise grant as now.
+- Do **not** add `notifications` to `SENSITIVE_PERMISSIONS` — that would make it
+  `'ask'` and start prompting. The default must stay "granted, silently".
+- Origin derives from the shortcut's URL.
+- Menu item goes in `popupShortcutMenu()` (`src/main/accounts.ts:2157`).
+- Badge: per-app state already reaches the renderer in the shortcut payload
+  (`audible` etc., ~`accounts.ts:1913`); add a `notificationsMuted` flag and
+  render it in the rail reusing the `account__muted` styling.
+- Chromium re-checks the permission for every notification, so toggling takes
+  effect immediately — same mechanism the account mute already relies on.
+
+**Non-goals.** A general permissions-manager UI; notification history; per-sender
+or per-label filtering inside Gmail; scheduling / do-not-disturb; changing the
+default for apps the user has not touched.
+
+**Calls made while speccing (not user decisions)**
+- Account mute overrides per-app mute, rather than the two being independent.
+- Keying by **origin** means two rail apps on the same origin (e.g. two Gmail
+  shortcuts for different mailboxes) share one setting. Accepted as a tradeoff;
+  per-shortcut keying would duplicate state the permission layer cannot see.
+
+**Acceptance**
+- Mute Gmail in an account: Gmail notifications stop, Calendar reminders still
+  arrive, no restart needed.
+- The same app in a different account is unaffected.
+- Badge appears/disappears on the rail icon.
+- Survives a restart.
+- Account-level mute still silences everything.
+- guard + build + smoke + isolation pass.
 
 **First complete cut (Phases 0–7) is done.** Remaining polish explicitly requested
 2026-07-08: per-account notification mute (Phase 15), notification click-to-switch
