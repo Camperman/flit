@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Entitlements for "Flit Helper.app" ONLY — the bundle Chromium launches
+         utility processes from — applied by scripts/sign-utility-helper.mjs
+         after electron-builder has signed the bundle. Identical to
+         entitlements.mac.inherit.plist plus library validation disabled.
+
+         Why: the Widevine CDM is a dylib DOWNLOADED AT RUNTIME by Chrome's
+         component updater (castLabs' Electron does not bundle it). Under the
+         hardened runtime, library validation refuses to load a dylib signed by
+         another team, so createMediaKeys() fails with "CreateCdmFunc not
+         available" even though requestMediaKeySystemAccess() succeeds — that
+         only checks the CDM is registered, not that it loads.
+
+         Why this bundle: Electron runs the CDM as a utility process, and
+         utility processes launch from the generic "Flit Helper.app" (verified
+         from the running process list — network and audio services run from it
+         too). Chrome entitles its Helper (Plugin) instead; that bundle is
+         legacy PPAPI here and entitling it changed nothing.
+
+         Why not everywhere: this entitlement lets a process load arbitrary
+         unsigned libraries. Helper (Renderer).app and Helper (GPU).app have
+         their own bundles and deliberately do NOT get it, so the two most
+         attack-exposed processes stay fully hardened. The main app does not get
+         it either. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- Required for Electron (V8 JIT) under the hardened runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Google Meet: microphone + camera. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    <!-- Passkey/security-key sign-in over Bluetooth (caBLE). -->
+    <key>com.apple.security.device.bluetooth</key>
+    <true/>
+  </dict>
+</plist>
