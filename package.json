@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:smoke": "playwright test tests/smoke.spec.ts",
     "test:isolation": "playwright test tests/isolation.spec.ts",
+    "test:notifications": "playwright test tests/notification-click.spec.ts",
     "guard": "node scripts/guard.mjs",
     "package": "npm run build && electron-builder --dir -c.mac.identity=null -c.mac.notarize=false",
     "dist": "npm run build && APPLE_KEYCHAIN_PROFILE=flit electron-builder && APPLE_KEYCHAIN_PROFILE=flit node scripts/staple-dmg.mjs"

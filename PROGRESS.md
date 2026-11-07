@@ -47,6 +47,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ⏸ on branch `feat/platform-passkeys`, blocked upstream |
 | 40 | Widevine DRM (castLabs Electron) — Amazon Music, Spotify, Netflix | ✅ CONFIRMED PLAYING 2026-11-06 |
 | 41 | Per-app notification mute (silence Gmail, keep Calendar) | ✅ (menu toggle is a manual check) |
+| 42 | Notification click opens the message in the main window (not a Gmail popout) | ✅ (real-Gmail click is a manual check) |
 
 ## Next up
 **Phase 39 — system/iCloud passkeys — parked, blocked upstream.** Lives on branch
@@ -55,6 +56,42 @@ returns `clientDataJSON.origin` as `https://<rpId>` instead of the caller's
 origin, so relying parties reject every assertion. Needs a patched Electron.
 (The earlier "Google flows divert to phone / transport selection" framing was
 WRONG — see the Phase 38 notes.)
+
+### Phase 42 notes — Notification click stays in the main window (2026-11-06)
+
+**Bug.** Clicking a Gmail notification opened a bare, mis-sized window instead
+of showing the email in the main Flit window.
+
+**Root cause (captured live with a CDP probe on the real app).** Flit's own
+click listener fires first and switches to the Gmail tab, which worked. Gmail's
+click handler then calls:
+
+    window.open("/mail/u/0/popout?ver=…&search=inbox&type=FMfcgz…
+                 &th=%23thread-f%3A1881158970757441198&cvid=1",
+                "xj0n74zcoldw", "width=800,location=0,height=660,…")
+
+Size features make Electron report it as a real popup, and Flit allows those
+(OAuth needs them), so Gmail got its popout window.
+
+**Fix.** The sentinel handler stamps `tab.notificationClickAt`. A window.open
+from that tab within 1.5 s (`NOTIFICATION_OPEN_WINDOW_MS`; measured gap 1 ms)
+is consumed once: a Gmail popout is converted by `gmailPopoutToThreadUrl()` and
+loaded in the same tab; anything else opens as a normal foreground tab.
+Sign-in popups and Gmail's own "open in new window" are unaffected.
+
+**Trap avoided.** The popout's `type`/`search` params describe what the tab was
+**already showing** — in the capture, `type` was the token of a different,
+already-open email. The notified thread is `th=#thread-f:<decimal>`. Verified
+in the live Work Gmail tab: `#inbox/1a1b381dfa0966ae` (hex of that id) opened
+the notified "Thanks" email and Gmail rewrote it to its own token.
+
+**Tests.** `npm run test:notifications` (new): URL mapping on the real captured
+URL; a sized, relative window.open after a notification click opens a tab and
+no window (failed before the fix: 2 windows); control — the same open without a
+click still gets its own window. guard + build + smoke + isolation pass.
+
+**Manual check:** click a real Gmail notification in the installed build — the
+email should open in the main window's Gmail tab.
 
 ### Phase 41 notes — Per-app notification mute (2026-11-06)
 

@@ -35,6 +35,7 @@ import type {
 } from '../shared/types'
 import { PRESET_HOMES } from '../shared/types'
 import { StatusBubble } from './statusBubble'
+import { gmailPopoutToThreadUrl, NOTIFICATION_OPEN_WINDOW_MS } from './notificationClick'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { PersistedAccount, PersistedTab } from './persistence'
 import type { DownloadManager } from './downloads'
@@ -219,6 +220,10 @@ interface Tab {
   engaged?: boolean
   /** Recent renderer-crash timestamps (rate-limits auto-reload). */
   crashTimes?: number[]
+  /** When one of this tab's notifications was last clicked. A window.open
+   *  right after it is the page reacting to the click (Gmail pops the message
+   *  out) and is kept in the main window — see notificationClick.ts. */
+  notificationClickAt?: number
 }
 
 /** Per-window state for a single account (its open tabs in that window). */
@@ -1014,6 +1019,7 @@ export class AccountManager implements ExtensionTabDelegate {
         return
       }
       if (message !== NOTIFICATION_CLICK_SENTINEL) return
+      tab.notificationClickAt = Date.now()
       this.accountState(ws, accountId).activeTabId = tab.id
       this.setActiveWs(ws, accountId)
       if (ws.win.isDestroyed()) return
@@ -1078,6 +1084,18 @@ export class AccountManager implements ExtensionTabDelegate {
       // app. Allowlisted schemes launch directly; others prompt for consent.
       if (isExternalProtocol(url)) {
         this.openExternalWithConsent(accountId, wc, wc.getURL(), url)
+        return { action: 'deny' }
+      }
+      // The page reacting to a notification click (Gmail asks for a sized
+      // popout of the message): keep it in the main window. One-shot, so a
+      // later sign-in popup from this tab is unaffected. Flit's click listener
+      // is registered before the page's, so its sentinel arrives first.
+      const clickedAt = tab.notificationClickAt
+      if (clickedAt !== undefined && Date.now() - clickedAt < NOTIFICATION_OPEN_WINDOW_MS) {
+        tab.notificationClickAt = undefined
+        const thread = gmailPopoutToThreadUrl(url)
+        if (thread) void wc.loadURL(thread) // tab is already active (sentinel handler)
+        else this.openLinkTab(ws, accountId, url, false)
         return { action: 'deny' }
       }
       // Link / target=_blank opens become tabs; only real popups (window.open
