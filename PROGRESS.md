@@ -45,7 +45,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 37 | Electron 37 → 44 upgrade (Chrome 138 → 152) | ✅ |
 | 38 | Touch ID passkeys (Secure Enclave WebAuthn, per account) | ✅ WORKING end-to-end (confirmed 2026-10-06) |
 | 39 | System passkeys via the Apple browser entitlement (iCloud Keychain) | ⏸ on branch `feat/platform-passkeys`, blocked upstream |
-| 40 | Widevine DRM (castLabs Electron) — Amazon Music, Spotify, Netflix | ✅ |
+| 40 | Widevine DRM (castLabs Electron) — Amazon Music, Spotify, Netflix | ✅ CONFIRMED PLAYING 2026-11-06 |
 | 41 | Per-app notification mute (silence Gmail, keep Calendar) | ✅ (menu toggle is a manual check) |
 
 ## Next up
@@ -140,6 +140,48 @@ only lost on the 30-min idle discard), and Google apps scroll inner containers, 
 a generic window-scroll restore wouldn't actually restore anything useful.
 
 ### Phase 40 notes — Widevine DRM (2026-10-12)
+
+**CONFIRMED WORKING 2026-11-06 — Amazon Music plays.** Getting there took THREE
+separate fixes, each confirmed by measurement, each invisible to the check
+before it. Do not remove any of them:
+
+1. **castLabs Electron + `components.whenReady()`** (2026-10-12). The fork does
+   not bundle the CDM; it is fetched at runtime by the component updater, and
+   only if the app asks.
+2. **Library validation on the utility helper** (2026-11-06). The CDM is a dylib
+   downloaded at runtime, so the hardened runtime refused to LOAD it:
+   `createMediaKeys()` -> "CreateCdmFunc not available", while
+   `requestMediaKeySystemAccess()` still said SUPPORTED. Signed vs unsigned was
+   the A/B that proved it. Fixed by `scripts/sign-utility-helper.mjs`
+   (afterSign), scoped to `Flit Helper.app` only — Electron hosts the CDM in a
+   UTILITY process, NOT Chrome's Helper (Plugin), which was tried first and did
+   nothing. Renderer and GPU stay hardened.
+3. **VMP signing via castLabs EVS** (2026-11-06). With the CDM loading,
+   playback still died seconds in. Amazon's server said exactly why:
+   `DrmLicenseDeniedException / UNTRUSTED_DEVICE_CERTIFICATE /
+   Code=DEVELOPMENT_CERTIFICATE_NOT_ALLOWED: development-vmp-certificate-not...`
+   castLabs' prebuilt Electron is VMP-signed for DEVELOPMENT only. Fixed by
+   `scripts/vmp-sign.mjs` (**afterPack**, because castLabs require VMP signing
+   BEFORE code signing on macOS).
+
+**Build order is now load-bearing:**
+`package -> VMP sign (afterPack) -> code sign -> utility-helper re-sign (afterSign) -> notarize`
+
+**The recurring trap, recorded because it cost most of a day:** every
+intermediate check passed while playback stayed broken.
+`requestMediaKeySystemAccess` only proves the CDM is REGISTERED;
+`createMediaKeys` proves it LOADS; neither proves a licence will be ISSUED.
+Test the operation, not the precondition.
+
+**Diagnostic that finally worked:** attach over CDP, hook the EME chain AND log
+every 4xx/5xx response with its body. Amazon's `/NA/api/dmls/` endpoint returned
+the exact denial reason. An earlier narrower network filter missed it and sent
+the diagnosis sideways.
+
+**Ongoing:** EVS tokens expire about monthly — `python3 -m castlabs_evs.account
+reauth` when a release build fails at the VMP step. `FLIT_SKIP_VMP=1` skips it
+for throwaway local builds.
+
 music.amazon.com showed "Update Chrome — this browser version is no longer
 supported". **Not a user-agent problem**: overriding the UA to plain Chrome 152,
 including adding `Google Chrome` to `userAgentData.brands`, changed nothing, and
