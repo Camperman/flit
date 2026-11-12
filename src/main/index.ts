@@ -237,8 +237,21 @@ if (!gotInstanceLock) {
   app.quit()
 }
 
+// A second launch brings the existing window forward; it does not open a new
+// one (Cmd-N does that). On macOS a second launch is almost never deliberate —
+// Dock, Spotlight and Finder just activate the running app. It happens when
+// macOS resolves Flit's bundle id to a different copy (an old backup, the DMG),
+// e.g. on a notification click: that copy starts, hits the lock and quits.
 app.on('second-instance', () => {
-  if (accounts) createWindow()
+  if (!accounts) return
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  if (!win) {
+    createWindow()
+    return
+  }
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
 })
 
 // Links sent to Flit by macOS (when Flit is the default browser, or

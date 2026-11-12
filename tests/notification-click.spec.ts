@@ -93,6 +93,27 @@ test('a window.open right after a notification click opens a tab, not a window',
   await app.close()
 })
 
+test('a second launch focuses the existing window instead of opening another', async () => {
+  // Clicking a notification makes macOS launch whichever copy of Flit it
+  // resolves the bundle id to. If that's a different copy (an old backup, the
+  // DMG), the new process hits the single-instance lock and quits, and Flit
+  // gets `second-instance`. Seen live 2026-11-12: usernoted launched
+  // /Applications/.Flit-prev.app and the user got a whole new Flit window.
+  const app = await launchFlit()
+  const page = await app.firstWindow()
+  await page.locator('[data-testid="sidebar"]').waitFor()
+  const before = await windowCount(app)
+
+  await app.evaluate(({ app }) => {
+    app.emit('second-instance', {}, [], '/', {})
+  })
+  // Give a would-be window time to be created.
+  await new Promise((r) => setTimeout(r, 1000))
+  expect(await windowCount(app)).toBe(before)
+
+  await app.close()
+})
+
 test('a sized window.open without a notification click still gets its own window', async () => {
   // Control: OAuth / sign-in popups rely on this.
   const app = await launchFlit()

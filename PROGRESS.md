@@ -48,6 +48,7 @@ Legend: ✅ done & verified · 🔧 in progress · ⬜ not started
 | 40 | Widevine DRM (castLabs Electron) — Amazon Music, Spotify, Netflix | ✅ CONFIRMED PLAYING 2026-11-06 |
 | 41 | Per-app notification mute (silence Gmail, keep Calendar) | ✅ (menu toggle is a manual check) |
 | 42 | Notification click opens the message in the main window (not a Gmail popout) | ✅ (real-Gmail click is a manual check) |
+| 43 | A second launch focuses the existing window (notification click no longer opens a new Flit window) | ✅ (real-Gmail click is a manual check) |
 
 ## Next up
 **Phase 39 — system/iCloud passkeys — parked, blocked upstream.** Lives on branch
@@ -56,6 +57,39 @@ returns `clientDataJSON.origin` as `https://<rpId>` instead of the caller's
 origin, so relying parties reject every assertion. Needs a patched Electron.
 (The earlier "Google flows divert to phone / transport selection" framing was
 WRONG — see the Phase 38 notes.)
+
+### Phase 43 notes — Second launch focuses, doesn't open a window (2026-11-12)
+
+**Bug.** Clicking a Gmail notification opened a whole second Flit window
+(sidebar, tabs and all), on top of the Phase 42 fix.
+
+**Root cause (from the macOS unified log).** usernoted handles the click by
+bringing the app *for the bundle id* to the front, and it resolved
+`com.gottaplaygames.flit` to a stale copy:
+`Bringing app com.gottaplaygames.flit front for response with URL: file:///Applications/.Flit-prev.app/`
+→ launchd spawned that copy → it hit the single-instance lock and quit → the
+running Flit got `second-instance`, which (since Phase 12) opened a new window.
+`NSWorkspace.URLForApplicationWithBundleIdentifier` confirmed `.Flit-prev.app`
+was LaunchServices' preferred copy among four registered (`/Applications/Flit.app`,
+`.Flit-prev.app` and `.Flit-0.8.0-backup.app` left over from manual installs, and
+`dist/mac-arm64/Flit.app`).
+
+**Fix.**
+- `second-instance` now restores/shows/focuses the existing window; it only
+  creates one if none exist. Cmd-N is the way to get a new window. On macOS a
+  second launch is never a deliberate "new window" gesture (Dock, Spotlight and
+  Finder activate the running app), so this only changes accidental cases, e.g. a
+  friend running Flit from the DMG while a copy is installed.
+- This Mac: unregistered (`lsregister -u`) and trashed the two hidden backups,
+  unregistered the `dist/` copy, so LaunchServices now prefers `/Applications/Flit.app`.
+
+**Install gotcha.** Don't leave backup copies of Flit.app anywhere LaunchServices
+indexes. If a backup is needed during an install, `lsregister -u` it and remove it
+afterwards.
+
+**Test.** `a second launch focuses the existing window instead of opening another`
+(emits `second-instance`, expects the window count unchanged). It failed before the
+fix (1 → 2 windows). guard + build + smoke + isolation + notifications pass.
 
 ### Phase 42 notes — Notification click stays in the main window (2026-11-06)
 
@@ -1141,7 +1175,7 @@ receive a mail there, click the banner → Glide focuses and switches to B.
   own WebContentsViews; metadata mutations (add/edit/remove account, shortcuts,
   bookmarks, avatar, zoom/layout/bookmarks-bar) **broadcast to all windows**. IPC
   now resolves the sending window via `BrowserWindow.fromWebContents`. New Window
-  = **Cmd-N** (File menu) or a second app launch (single-instance `second-instance`
+  = **Cmd-N** (File menu) or a second app launch (single-instance `second-instance`, focus-only since Phase 43
   → new window). Each window opens to the default active profile and shares all
   logins/sessions. New automated test (`opens a second independent window`) joins
   the smoke suite. guard + build + smoke (×2) + isolation pass. Notes: each window
