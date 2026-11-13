@@ -57,7 +57,10 @@ async function openPopup(
       const wc = webContents.fromId(wcId)!
       await wc.executeJavaScript(
         `(() => {
-          const open = () => window.open(${JSON.stringify(url)}, 'pop', 'width=800,height=660')
+          // Like Gmail: a null return means "popup blocked" and it alerts.
+          const open = () => {
+            window.__flitOpenReturned = window.open(${JSON.stringify(url)}, 'pop', 'width=800,height=660') !== null
+          }
           if (!${viaNotification}) { open(); return }
           const n = new Notification('Flit test', { silent: true })
           n.addEventListener('click', open)
@@ -70,6 +73,14 @@ async function openPopup(
     { wcId, viaNotification, url }
   )
 }
+
+/** Did the page's last window.open return a window (not null)? */
+const openReturnedWindow = (app: Awaited<ReturnType<typeof launchFlit>>, wcId: number): Promise<boolean> =>
+  app.evaluate(({ webContents }, wcId) => webContents.fromId(wcId)!.executeJavaScript('window.__flitOpenReturned === true'), wcId)
+
+/** Windows the user can see (a swallowed popup may exist hidden for a moment). */
+const visibleWindowCount = (app: Awaited<ReturnType<typeof launchFlit>>): Promise<number> =>
+  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter((w) => w.isVisible()).length)
 
 const windowCount = (app: Awaited<ReturnType<typeof launchFlit>>): Promise<number> =>
   app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)
@@ -88,7 +99,11 @@ test('a window.open right after a notification click opens a tab, not a window',
   // Relative, like Gmail's — the handler must receive it resolved.
   await openPopup(app, wcId, true, '/from-notification')
   await expect.poll(() => urlsOpen(app)).toContain('https://example.com/from-notification')
-  expect(await windowCount(app)).toBe(before)
+  // Gmail alerts "A popup blocker may be preventing…" if window.open returns
+  // null (seen live 2026-11-13 after the first version of this fix denied it).
+  expect(await openReturnedWindow(app, wcId)).toBe(true)
+  expect(await visibleWindowCount(app)).toBe(before)
+  await expect.poll(() => windowCount(app)).toBe(before)
 
   await app.close()
 })

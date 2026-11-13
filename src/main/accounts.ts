@@ -1079,6 +1079,9 @@ export class AccountManager implements ExtensionTabDelegate {
       }
     })
 
+    // The notification-click popup the handler below lets through hidden;
+    // did-create-window destroys it.
+    let swallowPopupUrl: string | undefined
     wc.setWindowOpenHandler(({ url, disposition }) => {
       // App-protocol popups (e.g. zoommtg://) → hand off to the OS / native
       // app. Allowlisted schemes launch directly; others prompt for consent.
@@ -1096,7 +1099,18 @@ export class AccountManager implements ExtensionTabDelegate {
         const thread = gmailPopoutToThreadUrl(url)
         if (thread) void wc.loadURL(thread) // tab is already active (sentinel handler)
         else this.openLinkTab(ws, accountId, url, false)
-        return { action: 'deny' }
+        // Not 'deny': then window.open returns null and Gmail alerts "A popup
+        // blocker may be preventing the application from opening the page".
+        // Let the popup be created hidden and destroy it on arrival
+        // (did-create-window below), so the page gets a real window back.
+        swallowPopupUrl = url
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            show: false,
+            webPreferences: { partition: part, contextIsolation: true, nodeIntegration: false }
+          }
+        }
       }
       // Link / target=_blank opens become tabs; only real popups (window.open
       // with size features → 'new-window', e.g. OAuth) get their own window.
@@ -1186,7 +1200,12 @@ export class AccountManager implements ExtensionTabDelegate {
     // Popups (auth, compose, …) share this account's partition. When a Google
     // sign-in popup closes, reload the opener so the completed login is picked
     // up (the auth cookie is already in this partition).
-    wc.on('did-create-window', (child) => {
+    wc.on('did-create-window', (child, details) => {
+      if (swallowPopupUrl !== undefined && details.url === swallowPopupUrl) {
+        swallowPopupUrl = undefined
+        child.destroy()
+        return
+      }
       let sawAuth = false
       const check = (_e: unknown, navUrl: string): void => {
         if (navUrl.includes('accounts.google.com')) sawAuth = true

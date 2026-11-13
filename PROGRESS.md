@@ -127,6 +127,15 @@ click still gets its own window. guard + build + smoke + isolation pass.
 **Manual check:** click a real Gmail notification in the installed build — the
 email should open in the main window's Gmail tab.
 
+**Follow-up (2026-11-13): "Grrr! A popup blocker may be preventing…".** The
+first version answered Gmail's popout `window.open` with `deny`, so the call
+returned `null` and Gmail alerted the user about a popup blocker. Now the handler
+`allow`s it with `show: false` and `did-create-window` destroys it right away.
+The page gets a real (immediately closed) window back, and the message still
+opens in the main tab. The test now also asserts `window.open` returned non-null
+and no visible window appeared. It failed before the change (returned null).
+Manual check: a real Gmail notification click shows no alert.
+
 ### Phase 41 notes — Per-app notification mute (2026-11-06)
 
 **Built and verified.** Measured on a signed-out scratch profile, using origins
